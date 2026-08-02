@@ -10,6 +10,7 @@ import 'package:smtc_windows/smtc_windows.dart';
 
 import '../models/audio_track.dart';
 import '../models/audio_gain_settings.dart';
+import '../platform/runtime_platform.dart';
 import 'cache_service.dart';
 import 'caching_stream_audio_source.dart';
 import 'audio_haptics_service.dart';
@@ -129,7 +130,7 @@ class AudioPlayerService {
     );
 
     // Initialize Windows SMTC (System Media Transport Controls)
-    if (Platform.isWindows) {
+    if (runtimePlatform.supportsSmtc) {
       try {
         _smtc = SMTCWindows(
           config: const SMTCConfig(
@@ -183,8 +184,7 @@ class AudioPlayerService {
   Future<void> updateAudioSessionConfig(bool enablePassthrough) async {
     _audioPassthroughEnabled = enablePassthrough;
     await _applyOutputLevel();
-
-    if (!Platform.isAndroid && !Platform.isIOS) return;
+    if (!runtimePlatform.supportsAudioSessionConfiguration) return;
 
     // iOS 平台如果用户认为不支持，则不应用直通配置，或者仅应用基础配置
     // 这里根据需求，如果是在 iOS 上，我们可能不希望开启 "movie" 模式，或者保持默认

@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../providers/player_buttons_provider.dart';
 import '../utils/l10n_extensions.dart';
 import '../widgets/settings_section.dart';
+import '../platform/runtime_platform.dart';
 
 /// 播放器按钮设置页面
 class PlayerButtonsSettingsScreen extends ConsumerWidget {
@@ -56,7 +56,7 @@ class PlayerButtonsSettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDesktop = !Platform.isAndroid && !Platform.isIOS;
+    final isDesktop = runtimePlatform.isDesktop;
     final provider = isDesktop
         ? playerButtonsConfigDesktopProvider
         : playerButtonsConfigMobileProvider;

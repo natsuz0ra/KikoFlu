@@ -45,9 +45,9 @@ packages:
     dependency: "direct main"
     description:
       path: audio_service
-      ref: e0ce7e02a0759cf8aea997655351804517f2442d
-      resolved-ref: e0ce7e02a0759cf8aea997655351804517f2442d
-      url: "https://github.com/ryanheise/audio_service.git"
+      ref: ac22654a6c8edc30b3d05fac4954de4b19ea85f1
+      resolved-ref: ac22654a6c8edc30b3d05fac4954de4b19ea85f1
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_audio_service.git"
     source: git
     version: "0.18.18"
   audio_service_platform_interface:
@@ -69,11 +69,12 @@ packages:
   audio_session:
     dependency: "direct main"
     description:
-      name: audio_session
-      sha256: "2b7fff16a552486d078bfc09a8cde19f426dc6d6329262b684182597bec5b1ac"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.25"
+      path: "."
+      ref: "27f404bdd8a394d6b7e2f6829f18aca8f9165fbc"
+      resolved-ref: "27f404bdd8a394d6b7e2f6829f18aca8f9165fbc"
+      url: "https://gitcode.com/CPF-Flutter/flutter_audio_session.git"
+    source: git
+    version: "0.2.2"
   boolean_selector:
     dependency: transitive
     description:
@@ -237,11 +238,12 @@ packages:
   connectivity_plus:
     dependency: "direct main"
     description:
-      name: connectivity_plus
-      sha256: "224a77051d52a11fbad53dd57827594d3bd24f945af28bd70bab376d68d437f0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.2"
+      path: "packages/connectivity_plus/connectivity_plus"
+      ref: "44f907d59a3d7c8c1bce7e37893564de3d81f335"
+      resolved-ref: "44f907d59a3d7c8c1bce7e37893564de3d81f335"
+      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
+    source: git
+    version: "5.0.1"
   connectivity_plus_platform_interface:
     dependency: transitive
     description:
@@ -341,10 +343,11 @@ packages:
   dynamic_color:
     dependency: "direct main"
     description:
-      name: dynamic_color
-      sha256: "43a5a6679649a7731ab860334a5812f2067c2d9ce6452cf069c5e0c25336c17c"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/dynamic_color"
+      ref: "3a087b36e1aedf1dafff9098c7b0d357af7d216c"
+      resolved-ref: "3a087b36e1aedf1dafff9098c7b0d357af7d216c"
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_dynamic_color.git"
+    source: git
     version: "1.8.1"
   equatable:
     dependency: "direct main"
@@ -378,14 +381,47 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
-  file_picker:
+  file_picker_ohos:
     dependency: "direct main"
     description:
-      name: file_picker
-      sha256: ab13ae8ef5580a411c458d6207b6774a6c237d77ac37011b13994879f68a8810
+      path: "."
+      ref: "98af21560ef18e2bc428389e07c12ab7c17b98fb"
+      resolved-ref: "98af21560ef18e2bc428389e07c12ab7c17b98fb"
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_file_picker.git"
+    source: git
+    version: "10.3.8"
+  file_selector_linux:
+    dependency: transitive
+    description:
+      name: file_selector_linux
+      sha256: "2567f398e06ac72dcf2e98a0c95df2a9edd03c2c2e0cacd4780f20cdf56263a0"
       url: "https://pub.dev"
     source: hosted
-    version: "8.3.7"
+    version: "0.9.4"
+  file_selector_macos:
+    dependency: transitive
+    description:
+      name: file_selector_macos
+      sha256: "5e0bbe9c312416f1787a68259ea1505b52f258c587f12920422671807c4d618a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.5"
+  file_selector_platform_interface:
+    dependency: transitive
+    description:
+      name: file_selector_platform_interface
+      sha256: "35e0bd61ebcdb91a3505813b055b09b79dfdc7d0aee9c09a7ba59ae4bb13dc85"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.7.0"
+  file_selector_windows:
+    dependency: transitive
+    description:
+      name: file_selector_windows
+      sha256: "62197474ae75893a62df75939c777763d39c2bc5f73ce5b88497208bc269abfd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.3+5"
   fixnum:
     dependency: transitive
     description:
@@ -431,10 +467,11 @@ packages:
   flutter_pdfview:
     dependency: "direct main"
     description:
-      name: flutter_pdfview
-      sha256: c0b2cc4ebf461a5a4bb9312a165222475a7d93845c7a0703f4abb7f442eb6d54
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: f9088ee57e42f74d0a79b68afba70c5ac5cc21e2
+      resolved-ref: f9088ee57e42f74d0a79b68afba70c5ac5cc21e2
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_flutter_pdfview.git"
+    source: git
     version: "1.4.3"
   flutter_plugin_android_lifecycle:
     dependency: transitive
@@ -582,6 +619,70 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.3.0"
+  image_picker:
+    dependency: transitive
+    description:
+      name: image_picker
+      sha256: d8402284df184bc05f4a2210c6c23983b0720f4cd87cbd05c5390a78af602667
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.3"
+  image_picker_android:
+    dependency: transitive
+    description:
+      name: image_picker_android
+      sha256: d5b3e1774af29c9ab00103afb0d4614070f924d2e0057ac867ec98800114793f
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.13+17"
+  image_picker_for_web:
+    dependency: transitive
+    description:
+      name: image_picker_for_web
+      sha256: "66257a3191ab360d23a55c8241c91a6e329d31e94efa7be9cf7a212e65850214"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.1"
+  image_picker_ios:
+    dependency: transitive
+    description:
+      name: image_picker_ios
+      sha256: b9c4a438a9ff4f60808c9cf0039b93a42bb6c2211ef6ebb647394b2b3fa84588
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.13+6"
+  image_picker_linux:
+    dependency: transitive
+    description:
+      name: image_picker_linux
+      sha256: "1f81c5f2046b9ab724f85523e4af65be1d47b038160a8c8deed909762c308ed4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
+  image_picker_macos:
+    dependency: transitive
+    description:
+      name: image_picker_macos
+      sha256: "86f0f15a309de7e1a552c12df9ce5b59fe927e71385329355aec4776c6a8ec91"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2+1"
+  image_picker_platform_interface:
+    dependency: transitive
+    description:
+      name: image_picker_platform_interface
+      sha256: "567e056716333a1647c64bb6bd873cff7622233a5c3f694be28a583d4715690c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.11.1"
+  image_picker_windows:
+    dependency: transitive
+    description:
+      name: image_picker_windows
+      sha256: d248c86554a72b5495a31c56f060cf73a41c7ff541689327b1a7dbccc33adfae
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   intl:
     dependency: "direct main"
     description:
@@ -625,11 +726,12 @@ packages:
   just_audio:
     dependency: "direct main"
     description:
-      name: just_audio
-      sha256: "50ed9f0ba88012eabdef7519ba6040bdbcf6c6667ebd77736fb25c196c98c0f3"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.44"
+      path: just_audio
+      ref: af0eb7e852026b03e2e4534ef380ee47937ad995
+      resolved-ref: af0eb7e852026b03e2e4534ef380ee47937ad995
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_just_audio.git"
+    source: git
+    version: "0.10.5"
   just_audio_media_kit:
     dependency: "direct main"
     description:
@@ -785,10 +887,11 @@ packages:
   open_filex:
     dependency: "direct main"
     description:
-      name: open_filex
-      sha256: "9976da61b6a72302cf3b1efbce259200cd40232643a467aac7370addf94d6900"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "63830409bc2aa4e86e1ebec30bb25c4e813a307c"
+      resolved-ref: "63830409bc2aa4e86e1ebec30bb25c4e813a307c"
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_open_filex.git"
+    source: git
     version: "4.7.0"
   package_config:
     dependency: transitive
@@ -801,10 +904,11 @@ packages:
   package_info_plus:
     dependency: "direct main"
     description:
-      name: package_info_plus
-      sha256: f69da0d3189a4b4ceaeb1a3defb0f329b3b352517f52bed4290f83d4f06bc08d
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/package_info_plus/package_info_plus"
+      ref: b7b9e4ae49a3c3f540c62b0b703d50eac6496ef3
+      resolved-ref: b7b9e4ae49a3c3f540c62b0b703d50eac6496ef3
+      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
+    source: git
     version: "9.0.0"
   package_info_plus_platform_interface:
     dependency: transitive
@@ -825,10 +929,11 @@ packages:
   path_provider:
     dependency: "direct main"
     description:
-      name: path_provider
-      sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/path_provider/path_provider"
+      ref: "7cc9f4cfbd464943096dc7c87288252c543df5cb"
+      resolved-ref: "7cc9f4cfbd464943096dc7c87288252c543df5cb"
+      url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
+    source: git
     version: "2.1.5"
   path_provider_android:
     dependency: transitive
@@ -854,6 +959,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.1"
+  path_provider_ohos:
+    dependency: transitive
+    description:
+      path: "packages/path_provider/path_provider_ohos"
+      ref: "br_path_provider-v2.1.5_ohos"
+      resolved-ref: "7cc9f4cfbd464943096dc7c87288252c543df5cb"
+      url: "https://gitcode.com/openharmony-sig/flutter_packages.git"
+    source: git
+    version: "2.2.17"
   path_provider_platform_interface:
     dependency: transitive
     description:
@@ -873,11 +987,12 @@ packages:
   permission_handler:
     dependency: "direct main"
     description:
-      name: permission_handler
-      sha256: "59adad729136f01ea9e35a48f5d1395e25cba6cea552249ddbe9cf950f5d7849"
-      url: "https://pub.dev"
-    source: hosted
-    version: "11.4.0"
+      path: permission_handler
+      ref: "9094b9494b311dae71fe0399d9acd546a773edef"
+      resolved-ref: "9094b9494b311dae71fe0399d9acd546a773edef"
+      url: "https://gitcode.com/CPF-Flutter/flutter_permission_handler.git"
+    source: git
+    version: "11.3.1"
   permission_handler_android:
     dependency: transitive
     description:
@@ -902,6 +1017,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.1"
+  permission_handler_ohos:
+    dependency: transitive
+    description:
+      path: permission_handler_ohos
+      ref: "br_permission_handler_v11.3.1_ohos"
+      resolved-ref: "9094b9494b311dae71fe0399d9acd546a773edef"
+      url: "https://gitcode.com/CPF-Flutter/flutter_permission_handler.git"
+    source: git
+    version: "11.3.1"
   permission_handler_platform_interface:
     dependency: transitive
     description:
@@ -1064,27 +1188,30 @@ packages:
   share_plus:
     dependency: "direct main"
     description:
-      name: share_plus
-      sha256: fce43200aa03ea87b91ce4c3ac79f0cecd52e2a7a56c7a4185023c271fbfa6da
-      url: "https://pub.dev"
-    source: hosted
-    version: "10.1.4"
+      path: "packages/share_plus/share_plus"
+      ref: "55de300a8627c55cd45ac86e6a26bcae8e0ca4cf"
+      resolved-ref: "55de300a8627c55cd45ac86e6a26bcae8e0ca4cf"
+      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
+    source: git
+    version: "10.1.1"
   share_plus_platform_interface:
     dependency: transitive
     description:
-      name: share_plus_platform_interface
-      sha256: cc012a23fc2d479854e6c80150696c4a5f5bb62cb89af4de1c505cf78d0a5d0b
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.2"
+      path: "packages/share_plus/share_plus_platform_interface"
+      ref: "55de300a8627c55cd45ac86e6a26bcae8e0ca4cf"
+      resolved-ref: "55de300a8627c55cd45ac86e6a26bcae8e0ca4cf"
+      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
+    source: git
+    version: "5.0.1"
   shared_preferences:
     dependency: "direct main"
     description:
-      name: shared_preferences
-      sha256: d3bbe5553a986e83980916ded2f0b435ef2e1893dfaa29d5a7a790d0eca12180
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.3"
+      path: "packages/shared_preferences/shared_preferences"
+      ref: "19bd50ff6d5eaa96f18c63796c51e1b4e78a7480"
+      resolved-ref: "19bd50ff6d5eaa96f18c63796c51e1b4e78a7480"
+      url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
+    source: git
+    version: "2.5.4"
   shared_preferences_android:
     dependency: transitive
     description:
@@ -1109,6 +1236,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.1"
+  shared_preferences_ohos:
+    dependency: transitive
+    description:
+      path: "packages/shared_preferences/shared_preferences_ohos"
+      ref: "br_shared_preferences-v2.5.4_ohos"
+      resolved-ref: "19bd50ff6d5eaa96f18c63796c51e1b4e78a7480"
+      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
+    source: git
+    version: "2.5.4"
   shared_preferences_platform_interface:
     dependency: transitive
     description:
@@ -1197,10 +1333,11 @@ packages:
   sqflite:
     dependency: "direct main"
     description:
-      name: sqflite
-      sha256: e2297b1da52f127bc7a3da11439985d9b536f75070f3325e62ada69a5c585d03
-      url: "https://pub.dev"
-    source: hosted
+      path: sqflite
+      ref: "1eefac74916ee14cab6b58da4d60a84153bcb758"
+      resolved-ref: "1eefac74916ee14cab6b58da4d60a84153bcb758"
+      url: "https://gitcode.com/CPF-Flutter/flutter_sqflite.git"
+    source: git
     version: "2.4.2"
   sqflite_android:
     dependency: transitive
@@ -1233,6 +1370,15 @@ packages:
       sha256: "279832e5cde3fe99e8571879498c9211f3ca6391b0d818df4e17d9fff5c6ccb3"
       url: "https://pub.dev"
     source: hosted
+    version: "2.4.2"
+  sqflite_ohos:
+    dependency: transitive
+    description:
+      path: sqflite_ohos
+      ref: "1eefac74916ee14cab6b58da4d60a84153bcb758"
+      resolved-ref: "1eefac74916ee14cab6b58da4d60a84153bcb758"
+      url: "https://gitcode.com/CPF-Flutter/flutter_sqflite.git"
+    source: git
     version: "2.4.2"
   sqflite_platform_interface:
     dependency: transitive
@@ -1365,10 +1511,11 @@ packages:
   url_launcher:
     dependency: "direct main"
     description:
-      name: url_launcher
-      sha256: f6a7e5c4835bb4e3026a04793a4199ca2d14c739ec378fdfe23fc8075d0439f8
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/url_launcher/url_launcher"
+      ref: "1283e0312195510b92151186c655ee023b0004fb"
+      resolved-ref: "1283e0312195510b92151186c655ee023b0004fb"
+      url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
+    source: git
     version: "6.3.2"
   url_launcher_android:
     dependency: transitive
@@ -1402,6 +1549,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.4"
+  url_launcher_ohos:
+    dependency: transitive
+    description:
+      path: "packages/url_launcher/url_launcher_ohos"
+      ref: "br_url_launcher-v6.3.2_ohos"
+      resolved-ref: "1283e0312195510b92151186c655ee023b0004fb"
+      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
+    source: git
+    version: "6.3.2"
   url_launcher_platform_interface:
     dependency: transitive
     description:
@@ -1515,5 +1671,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.12.1 <4.0.0"
-  flutter: ">=3.44.1"
+  dart: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.0"
