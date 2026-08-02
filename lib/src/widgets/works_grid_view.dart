@@ -92,11 +92,9 @@ class WorksGridView extends ConsumerWidget {
               }
 
               final work = works[index];
-              return RepaintBoundary(
-                child: EnhancedWorkCard(
-                  work: work,
-                  crossAxisCount: crossAxisCount,
-                ),
+              return EnhancedWorkCard(
+                work: work,
+                crossAxisCount: crossAxisCount,
               );
             },
           ),

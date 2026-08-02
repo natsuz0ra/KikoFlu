@@ -31,11 +31,15 @@ class EnhancedWorkCard extends ConsumerStatefulWidget {
   ConsumerState<EnhancedWorkCard> createState() => _EnhancedWorkCardState();
 }
 
-class _EnhancedWorkCardState extends ConsumerState<EnhancedWorkCard> {
+class _EnhancedWorkCardState extends ConsumerState<EnhancedWorkCard>
+    with AutomaticKeepAliveClientMixin<EnhancedWorkCard> {
   String? _progress; // 当前收藏状态
   int? _rating; // 当前评分
   bool _loadingProgress = false; // 是否在获取状态
   bool _updating = false; // 是否在更新状态
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -94,6 +98,7 @@ class _EnhancedWorkCardState extends ConsumerState<EnhancedWorkCard> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final authState = ref.watch(authProvider);
     final displaySettings = ref.watch(workCardDisplayProvider);
     final host = authState.host ?? '';

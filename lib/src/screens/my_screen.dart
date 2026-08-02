@@ -546,9 +546,9 @@ class _MyScreenState extends ConsumerState<MyScreen>
                 childCount: state.works.length,
                 itemBuilder: (context, index) {
                   final work = state.works[index];
-                  return RepaintBoundary(
-                    child: EnhancedWorkCard(
-                        work: work, crossAxisCount: crossAxisCount),
+                  return EnhancedWorkCard(
+                    work: work,
+                    crossAxisCount: crossAxisCount,
                   );
                 },
               ),

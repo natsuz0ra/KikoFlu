@@ -602,11 +602,9 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
               }
 
               final work = worksState.works[index];
-              return RepaintBoundary(
-                child: EnhancedWorkCard(
-                  work: work,
-                  crossAxisCount: crossAxisCount,
-                ),
+              return EnhancedWorkCard(
+                work: work,
+                crossAxisCount: crossAxisCount,
               );
             },
           ),

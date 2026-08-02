@@ -37,6 +37,7 @@ import 'src/providers/locale_provider.dart';
 import 'src/providers/theme_provider.dart';
 import 'src/providers/update_provider.dart';
 import 'src/utils/global_keys.dart';
+import 'src/utils/frame_timing_probe.dart';
 import 'src/utils/system_ui_style.dart';
 import 'src/widgets/screen_awake_observer.dart';
 import 'src/platform/runtime_platform.dart';
@@ -296,7 +297,10 @@ void main(List<String> args) async {
   ]);
 
   runZonedGuarded(
-    () => runApp(const ProviderScope(child: KikoeruApp())),
+    () {
+      FrameTimingProbe.start();
+      runApp(const ProviderScope(child: KikoeruApp()));
+    },
     (error, stack) {
       LogService.instance.error('$error\n$stack', tag: 'Zone');
     },
