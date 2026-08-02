@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +7,7 @@ import '../utils/l10n_extensions.dart';
 import '../utils/snackbar_util.dart';
 import '../widgets/scrollable_appbar.dart';
 import '../widgets/settings_section.dart';
+import '../platform/runtime_platform.dart';
 
 /// 播放器按钮设置页面
 class PlayerButtonsSettingsScreen extends ConsumerStatefulWidget {
@@ -20,7 +20,7 @@ class PlayerButtonsSettingsScreen extends ConsumerStatefulWidget {
 
 class _PlayerButtonsSettingsScreenState
     extends ConsumerState<PlayerButtonsSettingsScreen> {
-  final bool _isDesktop = !Platform.isAndroid && !Platform.isIOS;
+  final bool _isDesktop = runtimePlatform.isDesktop;
   List<PlayerButtonType> _buttonOrder = [];
 
   @override

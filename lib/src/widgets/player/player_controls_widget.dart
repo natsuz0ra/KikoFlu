@@ -7,6 +7,7 @@ import '../../providers/audio_provider.dart';
 import '../../providers/floating_lyric_provider.dart';
 import '../../providers/lyric_provider.dart';
 import '../../providers/player_buttons_provider.dart';
+import '../../platform/runtime_platform.dart';
 import '../../utils/string_utils.dart';
 import '../responsive_dialog.dart';
 import '../subtitle_adjustment_dialog.dart';
@@ -101,7 +102,7 @@ class _PlayerControlsWidgetState extends ConsumerState<PlayerControlsWidget> {
   }
 
   void _showMoreMenu(BuildContext context, WidgetRef ref) {
-    final isDesktop = !Platform.isAndroid && !Platform.isIOS;
+    final isDesktop = runtimePlatform.isDesktop;
     final config = isDesktop
         ? ref.read(playerButtonsConfigDesktopProvider)
         : ref.read(playerButtonsConfigMobileProvider);
@@ -703,7 +704,7 @@ class _PlayerControlsWidgetState extends ConsumerState<PlayerControlsWidget> {
         // Additional controls
         Consumer(
           builder: (context, ref, child) {
-            final isDesktop = !Platform.isAndroid && !Platform.isIOS;
+            final isDesktop = runtimePlatform.isDesktop;
             final config = isDesktop
                 ? ref.watch(playerButtonsConfigDesktopProvider)
                 : ref.watch(playerButtonsConfigMobileProvider);

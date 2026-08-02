@@ -39,9 +39,10 @@ import 'src/providers/update_provider.dart';
 import 'src/utils/global_keys.dart';
 import 'src/utils/system_ui_style.dart';
 import 'src/widgets/screen_awake_observer.dart';
+import 'src/platform/runtime_platform.dart';
 
 void _setEnv(String key, String value) {
-  if (Platform.isWindows) {
+  if (runtimePlatform.isWindows) {
     final keyNative = key.toNativeUtf16();
     final valueNative = value.toNativeUtf16();
     try {
@@ -55,7 +56,7 @@ void _setEnv(String key, String value) {
       calloc.free(keyNative);
       calloc.free(valueNative);
     }
-  } else if (Platform.isMacOS || Platform.isLinux) {
+  } else if (runtimePlatform.isMacOS || runtimePlatform.isLinux) {
     final keyNative = key.toNativeUtf8();
     final valueNative = value.toNativeUtf8();
     try {
@@ -99,7 +100,7 @@ ffi.DynamicLibrary _openSqliteOnLinux() {
 }
 
 void _initSqfliteFfi() {
-  if (Platform.isLinux) {
+  if (runtimePlatform.isLinux) {
     sqlite3_open.open.overrideFor(
       sqlite3_open.OperatingSystem.linux,
       _openSqliteOnLinux,
@@ -110,14 +111,14 @@ void _initSqfliteFfi() {
 }
 
 Future<void> _configureMpv() async {
-  if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) return;
+  if (!runtimePlatform.isDesktop) return;
 
   try {
     final prefs = await SharedPreferences.getInstance();
     final passthrough = prefs.getBool('audio_passthrough_enabled') ?? false;
 
     Directory configDir;
-    if (Platform.isWindows) {
+    if (runtimePlatform.isWindows) {
       final exePath = Platform.resolvedExecutable;
       final exeDir = p.dirname(exePath);
       configDir = Directory(p.join(exeDir, 'portable_config'));
@@ -140,7 +141,7 @@ Future<void> _configureMpv() async {
 
     if (passthrough) {
       String configContent;
-      if (Platform.isWindows) {
+      if (runtimePlatform.isWindows) {
         configContent = '''
 ao=wasapi
 audio-exclusive=yes
@@ -150,7 +151,7 @@ msg-level=all=v
 video=no
 sub-auto=no
 ''';
-      } else if (Platform.isLinux) {
+      } else if (runtimePlatform.isLinux) {
         configContent = '''
 audio-spdif=ac3,dts,eac3
 log-file=${p.join(configDir.path, 'mpv_debug.log')}
@@ -177,7 +178,7 @@ sub-auto=no
     } else {
       // 即使不开启直通，也建议禁用视频输出以避免 Texture 崩溃
       String configContent;
-      if (Platform.isWindows) {
+      if (runtimePlatform.isWindows) {
         configContent = '''
 log-file=mpv_debug.log
 msg-level=all=v
@@ -232,21 +233,18 @@ void main(List<String> args) async {
   }
 
   // Initialize just_audio_media_kit for desktop and Android platforms
-  if (Platform.isWindows ||
-      Platform.isLinux ||
-      Platform.isMacOS ||
-      Platform.isAndroid) {
+  if (runtimePlatform.supportsMpvBackend) {
     await _configureMpv();
     JustAudioMediaKit.ensureInitialized(android: true);
   }
 
-  if (Platform.isWindows || Platform.isLinux) {
+  if (runtimePlatform.supportsSqfliteFfi) {
     _initSqfliteFfi();
     databaseFactory = createDatabaseFactoryFfi(ffiInit: _initSqfliteFfi);
   }
 
   // Set minimum window size for desktop platforms
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (runtimePlatform.supportsDesktopWindow) {
     await windowManager.ensureInitialized();
 
     WindowOptions windowOptions = const WindowOptions(
@@ -265,7 +263,7 @@ void main(List<String> args) async {
   }
 
   // Initialize Hive for local storage
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (runtimePlatform.usesDesktopStoragePaths) {
     // For desktop platforms, use application documents directory
     final appDocDir = await getApplicationDocumentsDirectory();
     await Hive.initFlutter(p.join(appDocDir.path, 'KikoFlu'));
@@ -324,7 +322,7 @@ class _KikoeruAppState extends ConsumerState<KikoeruApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (runtimePlatform.supportsDesktopWindow) {
       windowManager.addListener(this);
     }
     // Initialize audio and video services
@@ -354,7 +352,7 @@ class _KikoeruAppState extends ConsumerState<KikoeruApp>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (runtimePlatform.supportsDesktopWindow) {
       windowManager.removeListener(this);
     }
     super.dispose();
@@ -380,7 +378,7 @@ class _KikoeruAppState extends ConsumerState<KikoeruApp>
   void onWindowClose() async {
     // 桌面端关闭窗口时 flush 播放历史
     await PlaybackHistoryService.instance.flushNow(reason: FlushReason.dispose);
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (runtimePlatform.supportsDesktopWindow) {
       // 关闭主窗口时，同时关闭悬浮字幕窗口
       await FloatingLyricService.instance.hide();
     }
