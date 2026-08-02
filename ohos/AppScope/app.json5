@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "com.meteor.kikoeruflutter",
+    "bundleName": "com.meteor.kikoeruflutter.harmony",
     "vendor": "meteor",
     "versionCode": 1,
     "versionName": "3.5.0",
