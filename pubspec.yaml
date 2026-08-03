@@ -40,8 +40,8 @@ dependencies:
   # Audio & Video & Pdf
   just_audio:
     git:
-      url: https://gitcode.com/CPF-Flutter/fluttertpc_just_audio.git
-      ref: af0eb7e852026b03e2e4534ef380ee47937ad995
+      url: https://github.com/natsuz0ra/fluttertpc_just_audio.git
+      ref: 399b8f8898e237b040c7c0a7ad360a3191f8c57a
       path: just_audio
   just_audio_media_kit: ^2.0.7
   media_kit: ^1.2.0

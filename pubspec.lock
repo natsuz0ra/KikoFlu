@@ -751,9 +751,9 @@ packages:
     dependency: "direct main"
     description:
       path: just_audio
-      ref: af0eb7e852026b03e2e4534ef380ee47937ad995
-      resolved-ref: af0eb7e852026b03e2e4534ef380ee47937ad995
-      url: "https://gitcode.com/CPF-Flutter/fluttertpc_just_audio.git"
+      ref: "399b8f8898e237b040c7c0a7ad360a3191f8c57a"
+      resolved-ref: "399b8f8898e237b040c7c0a7ad360a3191f8c57a"
+      url: "https://github.com/natsuz0ra/fluttertpc_just_audio.git"
     source: git
     version: "0.10.5"
   just_audio_media_kit:
