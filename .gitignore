@@ -118,3 +118,7 @@ logs
 
 # FVM Version Cache
 .fvm/
+.trellis/
+.agents/
+.codex/
+AGENTS.md
