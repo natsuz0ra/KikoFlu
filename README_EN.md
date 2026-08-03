@@ -1,127 +1,47 @@
-<div align="center">
-  <img src="assets/icons/app_icon_opaque.png" alt="KikoFlu" width="120" height="120">
+# KikoFlu
 
-  # KikoFlu
+[简体中文](README.md)
 
-  English | [日本語](README_JA.md) | [简体中文](README.md)
-  
-  A cross-platform doujin voice client. Supports self-hosted Kikoeru servers and online services.
+This repository is forked from
+[pa-jesusf/KikoFlu](https://github.com/pa-jesusf/KikoFlu) and uses
+[CPF-Flutter/flutter_flutter](https://gitcode.com/CPF-Flutter/flutter_flutter)
+to add native HarmonyOS NEXT HAP support while keeping features in sync with
+upstream.
 
-  [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
-  [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#)
-  [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+> [!IMPORTANT]
+>
+> This repository primarily maintains the HarmonyOS NEXT port and releases.
+> For other platforms, use the builds from the
+> [upstream repository](https://github.com/pa-jesusf/KikoFlu).
+> This build targets API 26, so check your system version before installation
+> (HarmonyOS 7 or later is recommended).
 
+## Support
 
-</div>
+- Target API: 26.0.0
+- Compatible API: 26.0.0
+- Flutter: ohos-3.41.9-dev (revision `c83ab0015f`)
 
-<div align="center">
-  <img src="screenshots/8.png" width="900" alt="KikoFlu Screenshot">
-</div>
+## Port Status
 
-## Features
+**The main HarmonyOS features are in sync with upstream.**
 
-### 🎵 Media Playback
-- Background playback with automatic caching
-- Playback speed control
-- Loop (single / list) and shuffle modes
-- Audio haptics (Beta): mobile devices vibrate based on audio characteristics
-- Multi-format support: audio, video, text, images, PDF, etc.
-- Full or selective download with concurrent download management
-- Offline download search and sorting
-- Local imported work metadata recognition
+- [x] Work browsing, search, filtering, and details
+- [x] Audio playback, background playback, and system media controls
+- [x] Audio caching, downloads, and offline browsing
+- [x] Subtitle loading, editing, translation, and library
+- [x] Image, text, and PDF viewing
+- [x] Themes, localization, and privacy mode
 
-### 📝 Subtitle System
-- Automatic subtitle loading
-- Subtitle import, editing, and timing adjustment
-- Real-time subtitle / lyric translation during playback
-- Translate subtitles for the current playback directly in the player, with immediate display and saving when complete
-- Fullscreen lyrics / subtitle display
-- Subtitle library (SQLite indexed, fast search)
-- Custom save directory with cross-drive copy support
+## Download and Installation
 
-### 🎨 Interface
-- Full platform support (Android / iOS / Windows / macOS / Linux)
-- Material Design 3
-- Landscape mode support
-- Light and dark theme
-- Title, file directory, and text file translation
-- Automatic tag translation (Chinese / English / Japanese)
-- Privacy mode
-- Rating system
-- Recommendations
+Download the HarmonyOS NEXT HAP from
+[Releases](https://github.com/natsuz0ra/KikoFlu/releases).
 
-### 🔍 Search
-- Advanced search with multi-tag / exclude-tag support
-- Multi-dimensional filtering (tags, rating, release date, etc.)
-- Detailed work information display
-
-### 🌐 Internationalization
-- 简体中文 / 繁體中文 / English / 日本語 / Русский
-- Multi-format, multilingual translation support
-
-### ⚙️ Settings
-- Multi-account support
-- Custom server address ([Guide](https://github.com/pa-jesusf/KikoFlu/wiki/%E4%BD%BF%E7%94%A8%E8%87%AA%E5%BB%BA%E5%90%8E%E7%AB%AF%E6%9C%8D%E5%8A%A1%E5%99%A8)) with connection latency testing
-- Cache size limit and cleanup strategy
-- Theme and color scheme customization
-- Separate translation target language setting, with custom target languages in LLM mode
-- Extensive UI customization options
-- In-app log system (with export)
-- Update checker
-
-### 📱 Android Features
-- Floating lyrics (lock / unlock / touch passthrough)
-
----
-
-## Download
-
-Go to [Releases](https://github.com/pa-jesusf/KikoFlu/releases/latest) for the latest version.
-
-Platforms: Android (universal / arm64 / armeabi-v7a / x86_64), iOS (unsigned IPA), Windows (installer / portable), macOS (DMG), Linux (x64 / arm64)
-
-### AltStore / SideStore
-
-iOS users can add the KikoFlu source to AltStore or SideStore for easy installation and updates:
-
-**Source URL:** `https://raw.githubusercontent.com/pa-jesusf/KikoFlu/main/altstore-source.json`
-
----
-
-## Build from Source
-
-### Requirements
-- Flutter SDK 3.0+
-- Dart SDK 3.0+
-
-```bash
-git clone https://github.com/pa-jesusf/KikoFlu.git
-cd KikoFlu
-flutter pub get
-```
-
-### Build Commands
-
-| Platform | Command |
-|----------|---------|
-| Android | `flutter build apk --release --split-per-abi` |
-| Windows | `flutter build windows --release` |
-| macOS | `flutter build macos --release` |
-| Linux | `flutter build linux --release` |
-| iOS | `./build_ios_xcode.sh` |
-
----
-
-## Related Projects
-
-- [Kikoeru](https://github.com/Number178/kikoeru-express) — Self-hosted backend server
-- [asmr.one](https://www.asmr.one) — Online service
+Installation tools such as
+[Auto Installer](https://github.com/likuai2010/auto-installer) can be used to
+install the HAP.
 
 ## License
 
-[GPL-3.0 License](LICENSE)
-
-## Contact
-
-- **Bug Reports**: [Issues](https://github.com/pa-jesusf/KikoFlu/issues)
-- **Community**: [Telegram](https://t.me/+PrkiN-pZrXs4ZTU1)
+GNU General Public License v3.0 ([GPL-3.0](LICENSE))

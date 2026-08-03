@@ -1,54 +1,38 @@
-<div align="center">
-  <img src="assets/icons/app_icon_opaque.png" alt="KikoFlu" width="120" height="120">
+# KikoFlu
 
-  # KikoFlu
+[English](README_EN.md)
 
-  [English](README_EN.md) | [日本語](README_JA.md) | 简体中文
-  
-  一个跨平台同人音声客户端，支持连接 Kikoeru 自建服务器或在线服务
+本仓库 fork 自 [pa-jesusf/KikoFlu](https://github.com/pa-jesusf/KikoFlu)，使用
+[CPF-Flutter/flutter_flutter](https://gitcode.com/CPF-Flutter/flutter_flutter)
+为 KikoFlu 增加 HarmonyOS NEXT 原生 HAP 支持，并持续同步上游功能。
 
-  [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
-  [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#)
-  [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+> [!IMPORTANT]
+>
+> 本仓库主要维护 HarmonyOS NEXT 移植与发布。其他平台请优先使用
+> [上游仓库](https://github.com/pa-jesusf/KikoFlu)提供的版本。
+> 且该版本使用API26编译，请注意系统版本（建议版本>=HarmonyOS7）
 
+## 支持情况
 
-</div>
+- 目标 API 版本：26.0.0
+- 兼容 API 版本：26.0.0
+- Flutter 版本：ohos-3.41.9-dev（revision `c83ab0015f`）
 
-<div align="center">
-  <img src="screenshots/8.png" width="900" alt="KikoFlu 截图">
-</div>
+## 功能适配情况
 
-## 特性
+**鸿蒙端主要功能已与上游同步。**
 
-### 🎵 媒体播放
-- 后台播放与自动缓存机制
-- 倍速播放
-- 单曲循环、列表循环、随机播放
-- 音频触感反馈(Beta)：移动端根据声音特征控制设备振动
-- 多媒体支持：音频、视频、文本、图片、PDF 等
-- 支持整个作品或选择性下载，并发下载管理
-- 离线下载搜索与排序
-- 本地导入作品元数据识别
+- [x] 作品浏览、搜索、筛选与详情
+- [x] 音频播放、后台播放与系统媒体控制
+- [x] 音频缓存、下载与离线浏览
+- [x] 字幕加载、编辑、翻译与字幕库
+- [x] 图片、文本与 PDF 浏览
+- [x] 主题、多语言与隐私模式
 
-### 📝 字幕系统
-- 自动字幕加载
-- 字幕导入、编辑、调轴
-- 字幕翻译（播放时实时翻译歌词/台词）
-- 播放器内翻译当前播放字幕，完成后立即显示并保存
-- 歌词/字幕全屏显示
-- 字幕库（SQLite 索引，快速检索）
-- 支持保存目录修改，跨硬盘拷贝
+## 下载与安装
 
-### 🎨 界面
-- 全平台支持（Android / iOS / Windows / macOS / Linux）
-- Material Design 3 设计规范
-- 横屏模式支持
-- 明暗主题自适应
-- 标题、文件目录、文本文件翻译
-- 标签自动翻译（中/英/日）
-- 防社死模式
-- 评分系统
-- 推荐作品功能
+前往 [Releases](https://github.com/natsuz0ra/KikoFlu/releases) 下载 HarmonyOS
+NEXT HAP。
 
 ### 🔍 搜索
 - 高级搜索，支持多标签 / 排除标签
@@ -116,20 +100,8 @@ flutter pub get
 
 - [Kikoeru](https://github.com/Number178/kikoeru-express) — 自建后端服务器
 - [asmr.one](https://www.asmr.one) — 在线服务
+可以使用[小白调试助手](https://github.com/likuai2010/auto-installer)等工具进行安装
 
 ## 开源协议
 
-[GPL-3.0 License](LICENSE)
-
-## 联系方式
-
-- **问题反馈**：[Issues](https://github.com/pa-jesusf/KikoFlu/issues)
-- **交流群组**：[Telegram](https://t.me/+PrkiN-pZrXs4ZTU1)
-
----
-
-<div align="center">
-
-  **如果这个项目对你有帮助，请给个 ⭐ Star 支持一下！**
-
-</div>
+GNU 通用公共许可证第 3 版（[GPL-3.0](LICENSE)）
