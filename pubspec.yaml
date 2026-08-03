@@ -167,12 +167,19 @@ flutter:
     - assets/icons/
     - LICENSE
 
-  # fonts:
-  #   - family: NotoSans
-  #     fonts:
-  #       - asset: assets/fonts/NotoSans-Regular.ttf
-  #       - asset: assets/fonts/NotoSans-Bold.ttf
-  #         weight: 700
+  fonts:
+    - family: HarmonyOSSansApp
+      fonts:
+        - asset: assets/fonts/HarmonyOS_Sans_SC_w400.ttf
+          weight: 400
+        - asset: assets/fonts/HarmonyOS_Sans_SC_w700.ttf
+          weight: 500
+        - asset: assets/fonts/HarmonyOS_Sans_SC_w700.ttf
+          weight: 600
+        - asset: assets/fonts/HarmonyOS_Sans_SC_w700.ttf
+          weight: 700
+        - asset: assets/fonts/HarmonyOS_Sans_SC_w700.ttf
+          weight: 800
 
 flutter_launcher_icons:
   android: "launcher_icon"
