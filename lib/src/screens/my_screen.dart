@@ -25,6 +25,7 @@ import '../utils/subtitle_filter.dart';
 export '../providers/my_reviews_provider.dart' show MyReviewLayoutType;
 
 import '../widgets/overscroll_next_page_detector.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../../l10n/app_localizations.dart';
 
 class MyScreen extends ConsumerStatefulWidget {
@@ -332,7 +333,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
         controller: _tabController,
         children: tabs.map((tab) => tab.widget).toList(),
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   Widget _buildOnlineBookmarksTab() {

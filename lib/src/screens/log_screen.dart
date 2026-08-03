@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../services/log_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../utils/snackbar_util.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -316,7 +317,7 @@ class _LogScreenState extends State<LogScreen> {
           ),
         ],
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 }
 

@@ -14,6 +14,7 @@ import '../services/log_service.dart';
 import '../utils/responsive_grid_helper.dart';
 import '../utils/snackbar_util.dart';
 import '../widgets/scrollable_appbar.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/download_fab.dart';
 import '../models/sort_options.dart';
@@ -326,7 +327,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
           ),
         ),
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   /// ===== 构建「全部 / 热门 / 推荐」按钮组 =====

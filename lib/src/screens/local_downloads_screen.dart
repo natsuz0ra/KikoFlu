@@ -19,6 +19,7 @@ import '../widgets/sort_dialog.dart';
 import 'offline_work_detail_screen.dart';
 import '../widgets/overscroll_next_page_detector.dart';
 import '../widgets/privacy_blur_cover.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../utils/scroll_optimization.dart';
 
 final _log = LogService.instance;
@@ -714,7 +715,7 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
           ],
         );
       },
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   Widget _buildTopBar(Map<int, List<DownloadTask>> groupedTasks) {
