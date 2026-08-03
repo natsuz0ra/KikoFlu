@@ -1,0 +1,125 @@
+name: Release HarmonyOS HAP
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag matching pubspec.yaml (for example, v3.5.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harmonyos-release
+  cancel-in-progress: false
+
+env:
+  FLUTTER_REPOSITORY: https://gitcode.com/CPF-Flutter/flutter_flutter.git
+  FLUTTER_REVISION: c83ab0015f5645de2c23f11e4c1e655af6065fd6
+
+jobs:
+  release:
+    name: Build unsigned HarmonyOS HAP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Validate release tag
+        id: release
+        env:
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_VERSION="${TAG#v}"
+          APP_VERSION="$(awk '/^version:/ { print $2; exit }' pubspec.yaml)"
+          APP_VERSION="${APP_VERSION%%+*}"
+          if [ "$APP_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::pubspec version $APP_VERSION does not match tag $TAG."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "asset_name=KikoFlu-ohos-${TAG}-unsigned.hap" >> "$GITHUB_OUTPUT"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl git libglu1-mesa unzip xz-utils zip
+
+      - name: Setup HarmonyOS toolchain
+        uses: ErBWs/setup-ohos@v1
+        with:
+          version: latest
+          cache: true
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter OHOS
+        shell: bash
+        run: |
+          git clone "$FLUTTER_REPOSITORY" "$RUNNER_TEMP/flutter-ohos"
+          git -C "$RUNNER_TEMP/flutter-ohos" checkout "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter-ohos/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve Flutter dependencies
+        env:
+          GIT_LFS_SKIP_SMUDGE: '1'
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build unsigned release HAP
+        run: flutter build hap --release --no-pub --no-codesign
+
+      - name: Package HAP
+        env:
+          ASSET_NAME: ${{ steps.release.outputs.asset_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          HAP_PATH="$(find build/ohos/hap ohos/entry/build -type f -name '*-unsigned.hap' -print -quit 2>/dev/null || true)"
+          if [ -z "$HAP_PATH" ]; then
+            echo "::error::Unsigned HAP was not found after the release build."
+            exit 1
+          fi
+          cp "$HAP_PATH" "$ASSET_NAME"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmonyos-unsigned-${{ steps.release.outputs.tag }}
+          path: ${{ steps.release.outputs.asset_name }}
+          if-no-files-found: error
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          ASSET_NAME: ${{ steps.release.outputs.asset_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<EOF
+          HarmonyOS NEXT build from the current main branch.
+
+          The attached HAP is unsigned. Sign it with your own HarmonyOS certificate and profile before installation.
+          EOF
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$ASSET_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target main \
+              --title "$TAG (HarmonyOS NEXT)" \
+              --notes-file release-notes.md
+          fi
