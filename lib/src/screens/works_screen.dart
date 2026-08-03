@@ -119,7 +119,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     if (currentMode == mode) return;
 
     if (_scrollController.hasClients) {
-      _scrollPositions[currentMode] = _scrollController.offset;
+      _scrollPositions[currentMode] = _scrollController.positions.last.pixels;
     }
 
     ref.read(worksProvider.notifier).setDisplayMode(mode);
@@ -130,7 +130,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (!_scrollController.hasClients) return;
-      final maxExtent = _scrollController.position.maxScrollExtent;
+      final maxExtent = _scrollController.positions.last.maxScrollExtent;
       final safeMax = maxExtent.isFinite ? maxExtent : targetOffset;
       final clamped = targetOffset.clamp(0.0, safeMax).toDouble();
       _scrollController.jumpTo(clamped);
