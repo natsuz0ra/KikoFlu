@@ -19,6 +19,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/sort_dialog.dart';
 import 'offline_work_detail_screen.dart';
 import '../widgets/privacy_blur_cover.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../widgets/virtualized_sliver_collection.dart';
 import '../widgets/floating_feed_toolbar.dart';
 
@@ -694,7 +695,7 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
           ],
         );
       },
-    );
+    ).scrollToTopOnStatusBar(_collectionController);
   }
 
   Widget _buildPrimaryToolbar(Map<int, List<DownloadTask>> groupedTasks) {

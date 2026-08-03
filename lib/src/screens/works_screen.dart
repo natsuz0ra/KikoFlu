@@ -8,6 +8,7 @@ import '../widgets/works_grid_view.dart';
 import '../widgets/virtualized_sliver_collection.dart';
 import '../utils/snackbar_util.dart';
 import '../widgets/floating_feed_toolbar.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/download_fab.dart';
 import '../models/sort_options.dart';
@@ -261,7 +262,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
           ],
         ),
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   List<FloatingFeedModeAction> _buildModeActions(

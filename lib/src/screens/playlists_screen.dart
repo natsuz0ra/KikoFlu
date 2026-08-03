@@ -7,6 +7,7 @@ import '../utils/l10n_extensions.dart';
 import '../widgets/playlist_card.dart';
 import '../widgets/virtualized_sliver_collection.dart';
 import '../utils/scroll_optimization.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../models/playlist.dart' show PlaylistPrivacy;
 import 'playlist_detail_screen.dart';
 
@@ -543,7 +544,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
         onRefresh: ref.read(playlistsProvider.notifier).refresh,
         child: _buildListView(state),
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   Widget _buildListView(PlaylistsState state) {

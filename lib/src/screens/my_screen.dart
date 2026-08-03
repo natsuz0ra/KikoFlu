@@ -24,6 +24,7 @@ import '../widgets/sort_dialog.dart';
 import '../models/sort_options.dart';
 import '../utils/subtitle_filter.dart';
 import '../utils/system_ui_style.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 export '../providers/my_reviews_provider.dart' show MyReviewLayoutType;
 
 import '../../l10n/app_localizations.dart';
@@ -398,7 +399,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
           ),
         ),
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   Widget _buildOnlineBookmarksTab({

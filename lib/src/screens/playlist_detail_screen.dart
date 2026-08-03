@@ -12,6 +12,7 @@ import '../widgets/playlist_add_works_dialog.dart';
 import '../widgets/playlist_edit_dialog.dart';
 import '../widgets/playlist_metadata_section.dart';
 import '../widgets/scrollable_appbar.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../utils/snackbar_util.dart';
 import '../screens/work_detail_screen.dart';
 import '../widgets/privacy_blur_cover.dart';
@@ -342,7 +343,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       body: ScrollNotificationObserver(
         child: _buildBody(state),
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   Widget _buildBody(PlaylistDetailState state) {

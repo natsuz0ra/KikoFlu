@@ -9,6 +9,7 @@ import '../providers/settings_provider.dart';
 import '../services/log_service.dart';
 import '../widgets/works_grid_view.dart';
 import '../widgets/virtualized_sliver_collection.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../widgets/sort_dialog.dart';
 import '../widgets/global_audio_player_wrapper.dart';
 import '../widgets/download_fab.dart';
@@ -223,7 +224,7 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
           ),
         ),
       ),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   Widget _buildSearchInfo(BuildContext context, SearchResultState searchState) {

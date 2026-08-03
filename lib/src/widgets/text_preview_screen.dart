@@ -17,6 +17,7 @@ import '../utils/local_file_url.dart';
 import '../utils/scroll_optimization.dart';
 import '../../l10n/app_localizations.dart';
 import 'scrollable_appbar.dart';
+import 'status_bar_scroll_to_top.dart';
 import 'translation_toggle_button.dart';
 import 'responsive_dialog.dart';
 
@@ -476,7 +477,7 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
         ],
       ),
       body: _buildBody(),
-    );
+    ).scrollToTopOnStatusBar(_scrollController);
   }
 
   Widget _buildBody() {
