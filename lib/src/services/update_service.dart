@@ -4,14 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service to check for app updates from GitHub releases
 class UpdateService {
-  static const String _githubApiUrl =
-      'https://api.github.com/repos/Meteor-Sage/KikoFlu/releases/latest';
-  static const String _releasePageUrl =
-      'https://github.com/Meteor-Sage/KikoFlu/releases/latest';
+  static const String githubApiUrl =
+      'https://api.github.com/repos/natsuz0ra/KikoFlu/releases/latest';
+  static const String releasePageUrl =
+      'https://github.com/natsuz0ra/KikoFlu/releases/latest';
 
-  static const String _keyLastCheckedVersion = 'last_checked_version';
-  static const String _keyLastNotifiedVersion = 'last_notified_version';
-  static const String _keyLastCheckTime = 'last_check_time';
+  static const String _keyLastCheckedVersion = 'fork_last_checked_version';
+  static const String _keyLastNotifiedVersion = 'fork_last_notified_version';
+  static const String _keyLastCheckTime = 'fork_last_check_time';
+  static const String _keyLastReleaseUrl = 'fork_last_release_url';
 
   final Dio _dio;
 
@@ -38,7 +39,7 @@ class UpdateService {
             return UpdateInfo(
               latestVersion: lastCheckedVersion,
               currentVersion: currentVersion,
-              releaseUrl: _releasePageUrl,
+              releaseUrl: prefs.getString(_keyLastReleaseUrl) ?? releasePageUrl,
               hasNewVersion: true,
             );
           }
@@ -48,7 +49,7 @@ class UpdateService {
 
       // Make API request with timeout
       final response = await _dio.get(
-        _githubApiUrl,
+        githubApiUrl,
         options: Options(
           headers: {
             'Accept': 'application/vnd.github.v3+json',
@@ -68,6 +69,7 @@ class UpdateService {
             .replaceFirst('v', '')
             .replaceFirst(RegExp(r'\(.*\)'), '')
             .trim();
+        final releaseUrl = data['html_url'] as String? ?? releasePageUrl;
 
         if (latestVersion.isEmpty) {
           return null;
@@ -76,6 +78,7 @@ class UpdateService {
         // Save check time and version
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_keyLastCheckedVersion, latestVersion);
+        await prefs.setString(_keyLastReleaseUrl, releaseUrl);
         await prefs.setInt(
             _keyLastCheckTime, DateTime.now().millisecondsSinceEpoch);
 
@@ -86,7 +89,7 @@ class UpdateService {
         return UpdateInfo(
           latestVersion: latestVersion,
           currentVersion: currentVersion,
-          releaseUrl: _releasePageUrl,
+          releaseUrl: releaseUrl,
           hasNewVersion: hasNewVersion,
         );
       }
@@ -161,6 +164,7 @@ class UpdateService {
       await prefs.remove(_keyLastCheckedVersion);
       await prefs.remove(_keyLastNotifiedVersion);
       await prefs.remove(_keyLastCheckTime);
+      await prefs.remove(_keyLastReleaseUrl);
     } catch (e) {
       // Silent failure
     }
