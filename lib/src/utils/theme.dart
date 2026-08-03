@@ -5,6 +5,11 @@ import '../providers/theme_provider.dart';
 class AppTheme {
   // iOS 使用 Cupertino 转场以支持侧滑返回
   static const _pageTransitionsTheme = PageTransitionsTheme();
+  // Use a bundled alias to avoid the slower OHOS system-font path.
+  static const _ohosFontFamily = 'HarmonyOSSansApp';
+
+  static String? get _platformFontFamily =>
+      Platform.operatingSystem == 'ohos' ? _ohosFontFamily : null;
 
   /// Apple 平台对应语言的原生 CJK 字体。
   ///
@@ -126,6 +131,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      fontFamily: _platformFontFamily,
       textTheme: _getTextTheme(),
       fontFamilyFallback: _platformFontFamilyFallback(
         locale ?? WidgetsBinding.instance.platformDispatcher.locale,
@@ -179,6 +185,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      fontFamily: _platformFontFamily,
       textTheme: _getTextTheme(),
       fontFamilyFallback: _platformFontFamilyFallback(
         locale ?? WidgetsBinding.instance.platformDispatcher.locale,
