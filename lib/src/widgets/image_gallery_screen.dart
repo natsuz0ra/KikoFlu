@@ -11,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../utils/snackbar_util.dart';
 import '../utils/local_file_url.dart';
 import '../services/storage_service.dart';
+import '../platform/runtime_platform.dart';
 import '../../l10n/app_localizations.dart';
 import 'cached_image_widget.dart';
 
@@ -130,7 +131,7 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
         imageBytes = response.data as List<int>;
       }
 
-      if (Platform.isAndroid) {
+      if (runtimePlatform.isAndroid || runtimePlatform.isOhos) {
         await _saveToGallery(imageBytes, imageName, l10n);
       } else {
         await _saveToFile(imageBytes, imageName, l10n);
@@ -148,42 +149,44 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
 
   Future<void> _saveToGallery(
       List<int> imageBytes, String imageName, S l10n) async {
-    PermissionStatus status = await Permission.photos.request();
+    if (runtimePlatform.isAndroid) {
+      PermissionStatus status = await Permission.photos.request();
 
-    if (status.isPermanentlyDenied || status == PermissionStatus.restricted) {
-      status = await Permission.storage.request();
-    }
-
-    if (!mounted) return;
-
-    if (!status.isGranted) {
-      if (status.isPermanentlyDenied) {
-        final shouldOpenSettings = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(l10n.storagePermissionRequired),
-            content: Text(l10n.storagePermissionForGalleryDesc),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(l10n.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(l10n.goToSettings),
-              ),
-            ],
-          ),
-        );
-
-        if (shouldOpenSettings == true) {
-          await openAppSettings();
-        }
-      } else {
-        SnackBarUtil.showWarning(
-            context, l10n.storagePermissionRequiredForImage);
+      if (status.isPermanentlyDenied || status == PermissionStatus.restricted) {
+        status = await Permission.storage.request();
       }
-      return;
+
+      if (!mounted) return;
+
+      if (!status.isGranted) {
+        if (status.isPermanentlyDenied) {
+          final shouldOpenSettings = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.storagePermissionRequired),
+              content: Text(l10n.storagePermissionForGalleryDesc),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.goToSettings),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldOpenSettings == true) {
+            await openAppSettings();
+          }
+        } else {
+          SnackBarUtil.showWarning(
+              context, l10n.storagePermissionRequiredForImage);
+        }
+        return;
+      }
     }
 
     final result = await SaverGallery.saveImage(

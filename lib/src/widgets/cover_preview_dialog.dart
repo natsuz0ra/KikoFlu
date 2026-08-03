@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../utils/snackbar_util.dart';
 import '../services/storage_service.dart';
+import '../platform/runtime_platform.dart';
 import '../../l10n/app_localizations.dart';
 
 /// 封面预览对话框，支持放大查看和保存图片
@@ -124,7 +125,7 @@ class _CoverPreviewDialogState extends State<CoverPreviewDialog> {
       }
 
       // 根据平台选择保存方式
-      if (Platform.isAndroid || Platform.isIOS) {
+      if (runtimePlatform.isMobile) {
         await _saveToGallery(imageBytes, fileName);
       } else {
         await _saveToFile(imageBytes, fileName);
@@ -143,7 +144,7 @@ class _CoverPreviewDialogState extends State<CoverPreviewDialog> {
 
   Future<void> _saveToGallery(Uint8List bytes, String fileName) async {
     // 请求权限
-    if (Platform.isAndroid) {
+    if (runtimePlatform.isAndroid) {
       final status = await Permission.photos.request();
       if (!status.isGranted) {
         final storageStatus = await Permission.storage.request();
