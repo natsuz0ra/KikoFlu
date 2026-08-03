@@ -115,3 +115,8 @@ KikoFlu_Key.pfx
 scripts/tag_translations_*.json
 
 logs
+
+.trellis/
+.agents/
+.codex/
+AGENTS.md
