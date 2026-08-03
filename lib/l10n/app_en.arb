@@ -209,6 +209,8 @@
   },
   "checkUpdate": "Check for Updates",
   "author": "Author",
+  "harmonyPort": "HarmonyOS Port",
+  "upstreamRepo": "Upstream Repository",
   "projectRepo": "Project Repository",
   "openSourceLicense": "Open Source License",
   "cannotOpenLink": "Cannot open link",

@@ -173,6 +173,8 @@
   "currentVersion": "Текущая версия: {version}",
   "checkUpdate": "Проверить обновления",
   "author": "Автор",
+  "harmonyPort": "Порт для HarmonyOS",
+  "upstreamRepo": "Исходный репозиторий",
   "projectRepo": "Репозиторий проекта",
   "openSourceLicense": "Лицензия открытого ПО",
   "cannotOpenLink": "Не удаётся открыть ссылку",

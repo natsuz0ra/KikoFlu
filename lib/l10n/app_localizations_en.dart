@@ -492,6 +492,12 @@ class SEn extends S {
   String get author => 'Author';
 
   @override
+  String get harmonyPort => 'HarmonyOS Port';
+
+  @override
+  String get upstreamRepo => 'Upstream Repository';
+
+  @override
   String get projectRepo => 'Project Repository';
 
   @override

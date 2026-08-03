@@ -481,6 +481,12 @@ class SJa extends S {
   String get author => '作者';
 
   @override
+  String get harmonyPort => 'HarmonyOS 移植';
+
+  @override
+  String get upstreamRepo => '上流リポジトリ';
+
+  @override
   String get projectRepo => 'プロジェクトリポジトリ';
 
   @override

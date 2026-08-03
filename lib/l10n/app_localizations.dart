@@ -1014,6 +1014,18 @@ abstract class S {
   /// **'Author'**
   String get author;
 
+  /// No description provided for @harmonyPort.
+  ///
+  /// In en, this message translates to:
+  /// **'HarmonyOS Port'**
+  String get harmonyPort;
+
+  /// No description provided for @upstreamRepo.
+  ///
+  /// In en, this message translates to:
+  /// **'Upstream Repository'**
+  String get upstreamRepo;
+
   /// No description provided for @projectRepo.
   ///
   /// In en, this message translates to:

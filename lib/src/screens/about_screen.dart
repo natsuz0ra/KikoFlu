@@ -17,8 +17,11 @@ class AboutScreen extends ConsumerStatefulWidget {
 }
 
 class _AboutScreenState extends ConsumerState<AboutScreen> {
-  static final Uri _repoUri =
-      Uri.parse('https://github.com/Meteor-Sage/Kikoeru-Flutter');
+  static final Uri _authorUri = Uri.parse('https://github.com/Meteor-Sage');
+  static final Uri _upstreamRepoUri =
+      Uri.parse('https://github.com/pa-jesusf/KikoFlu');
+  static final Uri _repoUri = Uri.parse('https://github.com/natsuz0ra/KikoFlu');
+  static final Uri _portAuthorUri = Uri.parse('https://github.com/natsuz0ra');
   late final Future<_AboutData> _aboutFuture;
 
   @override
@@ -174,6 +177,30 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                   iconColor: primaryColor,
                   title: S.of(context).author,
                   subtitle: 'Meteor-Sage',
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => _openUrl(_authorUri.toString()),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SettingsSectionCard(
+                child: SettingsListTile(
+                  icon: Icons.devices_other_outlined,
+                  iconColor: primaryColor,
+                  title: S.of(context).harmonyPort,
+                  subtitle: 'natsuz0ra',
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => _openUrl(_portAuthorUri.toString()),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SettingsSectionCard(
+                child: SettingsListTile(
+                  icon: Icons.fork_right_outlined,
+                  iconColor: primaryColor,
+                  title: S.of(context).upstreamRepo,
+                  subtitle: _upstreamRepoUri.toString(),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => _openUrl(_upstreamRepoUri.toString()),
                 ),
               ),
               const SizedBox(height: 16),

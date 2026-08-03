@@ -173,6 +173,8 @@
   "currentVersion": "目前版本：{version}",
   "checkUpdate": "檢查更新",
   "author": "作者",
+  "harmonyPort": "鴻蒙移植",
+  "upstreamRepo": "上游倉庫",
   "projectRepo": "專案倉庫",
   "openSourceLicense": "開源協議",
   "cannotOpenLink": "無法開啟連結",
