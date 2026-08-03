@@ -26,10 +26,16 @@ export '../providers/my_reviews_provider.dart' show MyReviewLayoutType;
 
 import '../widgets/overscroll_next_page_detector.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../../l10n/app_localizations.dart';
 
 class MyScreen extends ConsumerStatefulWidget {
-  const MyScreen({super.key});
+  const MyScreen({
+    super.key,
+    required this.reselectController,
+  });
+
+  final NavigationTabReselectController reselectController;
 
   @override
   ConsumerState<MyScreen> createState() => _MyScreenState();
@@ -62,14 +68,14 @@ class _MyScreenState extends ConsumerState<MyScreen>
     tabs.add(_TabInfo(
       title: S.of(context).historyRecord,
       index: tabs.length,
-      widget: const HistoryScreen(),
+      widget: HistoryScreen(reselectController: widget.reselectController),
     ));
 
     if (settings.showPlaylists && isOfficialServer) {
       tabs.add(_TabInfo(
         title: S.of(context).playlists,
         index: 1,
-        widget: const PlaylistsScreen(),
+        widget: PlaylistsScreen(reselectController: widget.reselectController),
       ));
     }
 
@@ -77,7 +83,9 @@ class _MyScreenState extends ConsumerState<MyScreen>
     tabs.add(_TabInfo(
       title: S.of(context).downloaded,
       index: 2,
-      widget: const LocalDownloadsScreen(),
+      widget: LocalDownloadsScreen(
+        reselectController: widget.reselectController,
+      ),
       showFab: true,
       fabWidget: StreamBuilder<List<DownloadTask>>(
         stream: DownloadService.instance.tasksStream,
@@ -100,7 +108,9 @@ class _MyScreenState extends ConsumerState<MyScreen>
       tabs.add(_TabInfo(
         title: S.of(context).subtitleLibrary,
         index: 3,
-        widget: const SubtitleLibraryScreen(),
+        widget: SubtitleLibraryScreen(
+          reselectController: widget.reselectController,
+        ),
       ));
     }
 
@@ -478,6 +488,12 @@ class _MyScreenState extends ConsumerState<MyScreen>
                 ),
         ),
       ],
+    ).onNavigationTabReselect(
+      controller: widget.reselectController,
+      onReselect: () {
+        _scrollToTop();
+        ref.read(myReviewsProvider.notifier).refresh();
+      },
     );
   }
 

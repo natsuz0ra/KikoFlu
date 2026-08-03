@@ -15,6 +15,7 @@ import '../utils/responsive_grid_helper.dart';
 import '../utils/snackbar_util.dart';
 import '../widgets/scrollable_appbar.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/download_fab.dart';
 import '../models/sort_options.dart';
@@ -23,7 +24,12 @@ import '../utils/subtitle_filter.dart';
 import '../utils/l10n_extensions.dart';
 
 class WorksScreen extends ConsumerStatefulWidget {
-  const WorksScreen({super.key});
+  const WorksScreen({
+    super.key,
+    required this.reselectController,
+  });
+
+  final NavigationTabReselectController reselectController;
 
   @override
   ConsumerState<WorksScreen> createState() => _WorksScreenState();
@@ -327,7 +333,13 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
           ),
         ),
       ),
-    ).scrollToTopOnStatusBar(_scrollController);
+    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
+          controller: widget.reselectController,
+          onReselect: () {
+            _scrollToTop();
+            ref.read(worksProvider.notifier).refresh();
+          },
+        );
   }
 
   /// ===== 构建「全部 / 热门 / 推荐」按钮组 =====

@@ -4,13 +4,42 @@ import '../providers/history_provider.dart';
 import '../widgets/history_work_card.dart';
 import '../widgets/pagination_bar.dart';
 import '../utils/scroll_optimization.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../../l10n/app_localizations.dart';
 
-class HistoryScreen extends ConsumerWidget {
-  const HistoryScreen({super.key});
+class HistoryScreen extends ConsumerStatefulWidget {
+  const HistoryScreen({
+    super.key,
+    required this.reselectController,
+  });
+
+  final NavigationTabReselectController reselectController;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyState = ref.watch(historyProvider);
     final history = historyState.records;
 
@@ -38,6 +67,7 @@ class HistoryScreen extends ConsumerWidget {
               ),
             )
           : CustomScrollView(
+              controller: _scrollController,
               cacheExtent: ScrollOptimization.cacheExtent,
               physics: ScrollOptimization.physics,
               slivers: [
@@ -91,6 +121,12 @@ class HistoryScreen extends ConsumerWidget {
               child: const Icon(Icons.delete_outline),
             )
           : null,
+    ).onNavigationTabReselect(
+      controller: widget.reselectController,
+      onReselect: () {
+        _scrollToTop();
+        ref.read(historyProvider.notifier).refresh();
+      },
     );
   }
 

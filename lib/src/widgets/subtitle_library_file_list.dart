@@ -19,6 +19,7 @@ typedef SubtitleLibraryFileOptions = void Function(
 class SubtitleLibraryFileList extends StatelessWidget {
   const SubtitleLibraryFileList({
     super.key,
+    this.controller,
     required this.items,
     required this.selectedPaths,
     required this.selectionMode,
@@ -32,6 +33,7 @@ class SubtitleLibraryFileList extends StatelessWidget {
   });
 
   final List<Map<String, dynamic>> items;
+  final ScrollController? controller;
   final Set<String> selectedPaths;
   final bool selectionMode;
   final bool recursive;
@@ -47,6 +49,7 @@ class SubtitleLibraryFileList extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
+        controller: controller,
         padding: const EdgeInsets.only(bottom: 80),
         children: _buildRows(context, items, level: 0),
       ),

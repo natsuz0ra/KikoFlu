@@ -8,11 +8,17 @@ import '../utils/scroll_optimization.dart';
 import '../widgets/playlist_card.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../models/playlist.dart' show PlaylistPrivacy;
 import 'playlist_detail_screen.dart';
 
 class PlaylistsScreen extends ConsumerStatefulWidget {
-  const PlaylistsScreen({super.key});
+  const PlaylistsScreen({
+    super.key,
+    required this.reselectController,
+  });
+
+  final NavigationTabReselectController reselectController;
 
   @override
   ConsumerState<PlaylistsScreen> createState() => _PlaylistsScreenState();
@@ -51,6 +57,17 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
         curve: Curves.easeInOut,
       );
     }
+  }
+
+  Widget _withReselect(Widget child) {
+    return NavigationTabReselectListener(
+      controller: widget.reselectController,
+      onReselect: () {
+        _scrollToTop();
+        ref.read(playlistsProvider.notifier).refresh();
+      },
+      child: child,
+    );
   }
 
   /// 显示创建播放列表对话框
@@ -468,7 +485,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
 
     // 错误状态
     if (state.error != null && state.playlists.isEmpty) {
-      return Center(
+      return _withReselect(Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -498,19 +515,19 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
             ),
           ],
         ),
-      );
+      ));
     }
 
     // 加载中且无数据
     if (state.isLoading && state.playlists.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return _withReselect(
+        const Center(child: CircularProgressIndicator()),
       );
     }
 
     // 空状态
     if (state.playlists.isEmpty) {
-      return Scaffold(
+      return _withReselect(Scaffold(
         floatingActionButton: FloatingActionButton(
           onPressed: _showCreatePlaylistDialog,
           tooltip: S.of(context).createPlaylist,
@@ -541,10 +558,10 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
             ],
           ),
         ),
-      );
+      ));
     }
 
-    return Scaffold(
+    return _withReselect(Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreatePlaylistDialog,
         tooltip: S.of(context).createPlaylist,
@@ -554,7 +571,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
         onRefresh: () async => ref.read(playlistsProvider.notifier).refresh(),
         child: _buildListView(state),
       ),
-    ).scrollToTopOnStatusBar(_scrollController);
+    ).scrollToTopOnStatusBar(_scrollController));
   }
 
   Widget _buildListView(PlaylistsState state) {

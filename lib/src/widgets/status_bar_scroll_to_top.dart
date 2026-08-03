@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+
+import '../utils/widget_visibility.dart';
 
 /// Scrolls an explicitly controlled foreground scroll view to the top when the
 /// platform reports a status bar tap.
@@ -55,7 +56,7 @@ class _StatusBarScrollToTopState extends State<StatusBarScrollToTop>
       if (!position.hasContentDimensions ||
           position.pixels <= position.minScrollExtent ||
           renderObject is! RenderBox ||
-          !_isHitTestable(renderObject, notificationContext!)) {
+          !isRenderBoxHitTestable(renderObject, notificationContext!)) {
         continue;
       }
 
@@ -78,25 +79,7 @@ class _StatusBarScrollToTopState extends State<StatusBarScrollToTop>
       return false;
     }
 
-    return _isHitTestable(renderObject, markerContext);
-  }
-
-  bool _isHitTestable(RenderBox renderObject, BuildContext context) {
-    if (!renderObject.attached ||
-        !renderObject.hasSize ||
-        renderObject.size.isEmpty) {
-      return false;
-    }
-
-    final center =
-        renderObject.localToGlobal(renderObject.size.center(Offset.zero));
-    final result = HitTestResult();
-    WidgetsBinding.instance.hitTestInView(
-      result,
-      center,
-      View.of(context).viewId,
-    );
-    return result.path.any((entry) => entry.target == renderObject);
+    return isRenderBoxHitTestable(renderObject, markerContext);
   }
 
   @override

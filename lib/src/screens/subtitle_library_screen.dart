@@ -14,6 +14,7 @@ import '../widgets/subtitle_library_folder_browser_dialog.dart';
 import '../widgets/manual_subtitle_load_flow.dart';
 import '../widgets/subtitle_library_guide_dialog.dart';
 import '../widgets/subtitle_library_top_bar.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../providers/audio_provider.dart';
 import '../providers/lyric_provider.dart';
 import '../utils/file_icon_utils.dart';
@@ -23,7 +24,12 @@ import '../../l10n/app_localizations.dart';
 
 /// 字幕库界面
 class SubtitleLibraryScreen extends ConsumerStatefulWidget {
-  const SubtitleLibraryScreen({super.key});
+  const SubtitleLibraryScreen({
+    super.key,
+    required this.reselectController,
+  });
+
+  final NavigationTabReselectController reselectController;
 
   @override
   ConsumerState<SubtitleLibraryScreen> createState() =>
@@ -38,6 +44,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
   bool _isSelectionMode = false;
   final Set<String> _selectedPaths = {}; // 选中的文件/文件夹路径
   StreamSubscription<void>? _cacheUpdateSubscription;
+  final ScrollController _scrollController = ScrollController();
 
   // 搜索相关
   bool _isSearching = false;
@@ -72,6 +79,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
   @override
   void dispose() {
     _cacheUpdateSubscription?.cancel();
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -784,6 +792,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
                 errorMessage: _errorMessage,
                 onRetry: _loadFiles,
                 child: SubtitleLibraryFileList(
+                  controller: _scrollController,
                   items: _isSearching
                       ? _filterFiles(_files, _searchQuery)
                       : _getCurrentFiles(),
@@ -802,6 +811,18 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
           ],
         ),
       ),
+    ).onNavigationTabReselect(
+      controller: widget.reselectController,
+      onReselect: () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
+        _loadFiles(forceRefresh: true);
+      },
     );
   }
 

@@ -7,6 +7,7 @@ import '../providers/update_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/main_bottom_navigation_bar.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import 'works_screen.dart';
 import 'search_screen.dart';
 import 'my_screen.dart';
@@ -22,22 +23,39 @@ class MainScreen extends ConsumerStatefulWidget {
 
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
+  static const int _homeTabIndex = 0;
+  static const int _myTabIndex = 2;
   static const int _settingsTabIndex = 3;
 
   // 使用 PageStorageBucket 来保存页面状态
   final PageStorageBucket _bucket = PageStorageBucket();
+  final _homeReselectController = NavigationTabReselectController();
+  final _myReselectController = NavigationTabReselectController();
 
   late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
-    _screens = const [
-      WorksScreen(key: PageStorageKey('works_screen')),
-      SearchScreen(key: PageStorageKey('search_screen')),
-      MyScreen(key: PageStorageKey('my_screen')),
-      SettingsScreen(key: PageStorageKey('settings_screen')),
+    _screens = [
+      WorksScreen(
+        key: const PageStorageKey('works_screen'),
+        reselectController: _homeReselectController,
+      ),
+      const SearchScreen(key: PageStorageKey('search_screen')),
+      MyScreen(
+        key: const PageStorageKey('my_screen'),
+        reselectController: _myReselectController,
+      ),
+      const SettingsScreen(key: PageStorageKey('settings_screen')),
     ];
+  }
+
+  @override
+  void dispose() {
+    _homeReselectController.dispose();
+    _myReselectController.dispose();
+    super.dispose();
   }
 
   List<NavigationDestination> _buildDestinations(
@@ -75,6 +93,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   void _handleDestinationSelected(int index) {
     if (_currentIndex == index) {
+      if (index == _homeTabIndex) {
+        _homeReselectController.reselect();
+      } else if (index == _myTabIndex) {
+        _myReselectController.reselect();
+      }
       return;
     }
 

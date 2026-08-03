@@ -20,13 +20,19 @@ import 'offline_work_detail_screen.dart';
 import '../widgets/overscroll_next_page_detector.dart';
 import '../widgets/privacy_blur_cover.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../utils/scroll_optimization.dart';
 
 final _log = LogService.instance;
 
 /// 本地下载屏幕 - 显示已完成的下载内容
 class LocalDownloadsScreen extends ConsumerStatefulWidget {
-  const LocalDownloadsScreen({super.key});
+  const LocalDownloadsScreen({
+    super.key,
+    required this.reselectController,
+  });
+
+  final NavigationTabReselectController reselectController;
 
   @override
   ConsumerState<LocalDownloadsScreen> createState() =>
@@ -715,7 +721,13 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
           ],
         );
       },
-    ).scrollToTopOnStatusBar(_scrollController);
+    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
+          controller: widget.reselectController,
+          onReselect: () {
+            _scrollToTop();
+            _refreshMetadata();
+          },
+        );
   }
 
   Widget _buildTopBar(Map<int, List<DownloadTask>> groupedTasks) {
