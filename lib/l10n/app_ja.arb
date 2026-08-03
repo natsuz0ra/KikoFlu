@@ -177,6 +177,8 @@
   "currentVersion": "現在のバージョン: {version}",
   "checkUpdate": "アップデートを確認",
   "author": "作者",
+  "harmonyPort": "HarmonyOS 移植",
+  "upstreamRepo": "上流リポジトリ",
   "projectRepo": "プロジェクトリポジトリ",
   "openSourceLicense": "オープンソースライセンス",
   "cannotOpenLink": "リンクを開けません",

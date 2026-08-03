@@ -492,6 +492,12 @@ class SZh extends S {
   String get author => '作者';
 
   @override
+  String get harmonyPort => '鸿蒙移植';
+
+  @override
+  String get upstreamRepo => '上游仓库';
+
+  @override
   String get projectRepo => '项目仓库';
 
   @override
@@ -4064,6 +4070,12 @@ class SZhHant extends SZh {
 
   @override
   String get author => '作者';
+
+  @override
+  String get harmonyPort => '鴻蒙移植';
+
+  @override
+  String get upstreamRepo => '上游倉庫';
 
   @override
   String get projectRepo => '專案倉庫';

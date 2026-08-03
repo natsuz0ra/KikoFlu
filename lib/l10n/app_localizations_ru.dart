@@ -506,6 +506,12 @@ class SRu extends S {
   String get author => 'Автор';
 
   @override
+  String get harmonyPort => 'Порт для HarmonyOS';
+
+  @override
+  String get upstreamRepo => 'Исходный репозиторий';
+
+  @override
   String get projectRepo => 'Репозиторий проекта';
 
   @override
