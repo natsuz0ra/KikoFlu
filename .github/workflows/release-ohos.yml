@@ -1,4 +1,5 @@
-name: Release HarmonyOS HAP
+name: Release HarmonyOS HAP (Official SDK)
+run-name: ${{ inputs.tag }}
 
 on:
   workflow_dispatch:
@@ -108,11 +109,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > release-notes.md <<EOF
-          HarmonyOS NEXT build from the current main branch.
-
-          The attached HAP is unsigned. Sign it with your own HarmonyOS certificate and profile before installation.
-          EOF
+          : > release-notes.md
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --clobber
@@ -120,6 +117,11 @@ jobs:
             gh release create "$TAG" "$ASSET_NAME" \
               --repo "$GITHUB_REPOSITORY" \
               --target main \
-              --title "$TAG (HarmonyOS NEXT)" \
+              --title "$TAG" \
               --notes-file release-notes.md
           fi
+
+          gh release edit "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --notes-file release-notes.md
