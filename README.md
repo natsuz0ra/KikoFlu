@@ -10,12 +10,11 @@
 >
 > 本仓库主要维护 HarmonyOS NEXT 移植与发布。其他平台请优先使用
 > [上游仓库](https://github.com/pa-jesusf/KikoFlu)提供的版本。
-> 且该版本使用API26编译，请注意系统版本（建议版本>=HarmonyOS7）
 
 ## 支持情况
 
 - 目标 API 版本：26.0.0
-- 兼容 API 版本：26.0.0
+- 最低兼容版本：HarmonyOS 6.0.2（API 22）
 - Flutter 版本：ohos-3.41.9-dev（revision `c83ab0015f`）
 
 ## 功能适配情况

@@ -13,13 +13,11 @@ upstream.
 > This repository primarily maintains the HarmonyOS NEXT port and releases.
 > For other platforms, use the builds from the
 > [upstream repository](https://github.com/pa-jesusf/KikoFlu).
-> This build targets API 26, so check your system version before installation
-> (HarmonyOS 7 or later is recommended).
 
 ## Support
 
 - Target API: 26.0.0
-- Compatible API: 26.0.0
+- Minimum compatible version: HarmonyOS 6.0.2 (API 22)
 - Flutter: ohos-3.41.9-dev (revision `c83ab0015f`)
 
 ## Port Status
