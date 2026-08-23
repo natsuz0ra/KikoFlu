@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +28,10 @@ import '../utils/subtitle_filter.dart';
 import '../utils/system_ui_style.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
 import '../widgets/navigation_tab_reselect.dart';
+import '../platform/harmony_channel.dart';
+import '../platform/harmony_native_overlay.dart';
+import '../platform/runtime_platform.dart';
+import '../providers/settings_provider.dart';
 export '../providers/my_reviews_provider.dart' show MyReviewLayoutType;
 
 import '../../l10n/app_localizations.dart';
@@ -44,6 +50,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
   final ScrollController _scrollController = ScrollController();
   late TabController _tabController;
   final ValueNotifier<bool> _tabSwitcherVisible = ValueNotifier(true);
+  bool _sortDialogOpen = false;
   int _lastTabIndex = 0;
 
   @override
@@ -59,75 +66,86 @@ class _MyScreenState extends ConsumerState<MyScreen>
     final isOfficialServer = ServerUtils.isOfficialServer(authState.host);
 
     if (settings.showOnlineMarks) {
-      tabs.add(_TabInfo(
-        title: S.of(context).onlineMarks,
-        icon: Icons.bookmark,
-        index: 0,
-        widget: _buildOnlineBookmarksTab(
-          toolbarTop: contentTop,
-          collapsedToolbarTop: collapsedToolbarTop,
+      tabs.add(
+        _TabInfo(
+          title: S.of(context).onlineMarks,
+          icon: Icons.bookmark,
+          index: 0,
+          widget: _buildOnlineBookmarksTab(
+            toolbarTop: contentTop,
+            collapsedToolbarTop: collapsedToolbarTop,
+          ),
+          showFab: true,
+          fabWidget: const DownloadFab(),
+          hasSecondaryToolbar: true,
         ),
-        showFab: true,
-        fabWidget: const DownloadFab(),
-      ));
+      );
     }
 
     // 历史记录
-    tabs.add(_TabInfo(
-      title: S.of(context).historyRecord,
-      icon: Icons.history,
-      index: tabs.length,
-      widget: HistoryScreen(topInset: contentTop),
-    ));
+    tabs.add(
+      _TabInfo(
+        title: S.of(context).historyRecord,
+        icon: Icons.history,
+        index: tabs.length,
+        widget: HistoryScreen(topInset: contentTop),
+      ),
+    );
 
     if (settings.showPlaylists && isOfficialServer) {
-      tabs.add(_TabInfo(
-        title: S.of(context).playlists,
-        icon: Icons.playlist_play,
-        index: 1,
-        widget: PlaylistsScreen(topInset: contentTop),
-      ));
+      tabs.add(
+        _TabInfo(
+          title: S.of(context).playlists,
+          icon: Icons.playlist_play,
+          index: 1,
+          widget: PlaylistsScreen(topInset: contentTop),
+        ),
+      );
     }
 
     // 已下载始终显示
-    tabs.add(_TabInfo(
-      title: S.of(context).downloaded,
-      icon: Icons.download_done,
-      index: 2,
-      widget: LocalDownloadsScreen(
-        toolbarTop: contentTop,
-        collapsedToolbarTop: collapsedToolbarTop,
-        primaryToolbarVisible: _tabSwitcherVisible,
-      ),
-      showFab: true,
-      fabWidget: StreamBuilder<List<DownloadTask>>(
-        stream: DownloadService.instance.tasksStream,
-        builder: (context, snapshot) {
-          final activeCount = DownloadService.instance.activeDownloadCount;
-          return Badge(
-            isLabelVisible: activeCount > 0,
-            label: Text('$activeCount'),
-            child: FloatingActionButton(
-              onPressed: _navigateToDownloads,
-              tooltip: S.of(context).downloadTasks,
-              child: const Icon(Icons.download),
-            ),
-          );
-        },
-      ),
-    ));
-
-    if (settings.showSubtitleLibrary) {
-      tabs.add(_TabInfo(
-        title: S.of(context).subtitleLibrary,
-        icon: Icons.subtitles,
-        index: 3,
-        widget: SubtitleLibraryScreen(
+    tabs.add(
+      _TabInfo(
+        title: S.of(context).downloaded,
+        icon: Icons.download_done,
+        index: 2,
+        widget: LocalDownloadsScreen(
           toolbarTop: contentTop,
           collapsedToolbarTop: collapsedToolbarTop,
           primaryToolbarVisible: _tabSwitcherVisible,
         ),
-      ));
+        showFab: true,
+        fabWidget: StreamBuilder<List<DownloadTask>>(
+          stream: DownloadService.instance.tasksStream,
+          builder: (context, snapshot) {
+            final activeCount = DownloadService.instance.activeDownloadCount;
+            return Badge(
+              isLabelVisible: activeCount > 0,
+              label: Text('$activeCount'),
+              child: FloatingActionButton(
+                onPressed: _navigateToDownloads,
+                tooltip: S.of(context).downloadTasks,
+                child: const Icon(Icons.download),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    if (settings.showSubtitleLibrary) {
+      tabs.add(
+        _TabInfo(
+          title: S.of(context).subtitleLibrary,
+          icon: Icons.subtitles,
+          index: 3,
+          widget: SubtitleLibraryScreen(
+            toolbarTop: contentTop,
+            collapsedToolbarTop: collapsedToolbarTop,
+            primaryToolbarVisible: _tabSwitcherVisible,
+          ),
+        ),
+      );
     }
 
     return tabs;
@@ -136,8 +154,14 @@ class _MyScreenState extends ConsumerState<MyScreen>
   @override
   void initState() {
     super.initState();
+    HarmonyChannel.nativeTopBarActive.addListener(_handleNativeTopChanged);
+    HarmonyChannel.setNativeTopActionHandler(
+      HarmonyTopBarPage.my,
+      _handleNativeTopAction,
+    );
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChanged);
+    _tabSwitcherVisible.addListener(_handleTopVisibilityChanged);
     // 只在首次加载时获取数据，如果已有数据则不重新加载
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final notifier = ref.read(myReviewsProvider.notifier);
@@ -152,7 +176,10 @@ class _MyScreenState extends ConsumerState<MyScreen>
 
   @override
   void dispose() {
+    HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
+    HarmonyChannel.setNativeTopActionHandler(HarmonyTopBarPage.my, null);
     _tabController.removeListener(_handleTabChanged);
+    _tabSwitcherVisible.removeListener(_handleTopVisibilityChanged);
     _tabController.dispose();
     _tabSwitcherVisible.dispose();
     _scrollController.dispose();
@@ -171,18 +198,85 @@ class _MyScreenState extends ConsumerState<MyScreen>
   }
 
   void _navigateToDownloads() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const DownloadsScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const DownloadsScreen()));
   }
 
   void _handleTabChanged() {
     if (_tabController.index == _lastTabIndex) return;
-    _lastTabIndex = _tabController.index;
-    _tabSwitcherVisible.value = true;
+    setState(() {
+      _lastTabIndex = _tabController.index;
+      _tabSwitcherVisible.value = true;
+    });
   }
+
+  void _handleNativeTopChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _handleTopVisibilityChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _handleNativeTopAction(HarmonyNativeTopAction event) {
+    if (!mounted) return;
+    if (event.action.startsWith('tab_')) {
+      final index = int.tryParse(event.action.substring(4));
+      if (index == null || index < 0 || index >= _tabController.length) return;
+      _tabController.animateTo(index);
+      return;
+    }
+    if (event.action.startsWith('filter_')) {
+      final index = int.tryParse(event.action.substring(7));
+      if (index == null || index < 0 || index >= MyReviewFilter.values.length) {
+        return;
+      }
+      ref
+          .read(myReviewsProvider.notifier)
+          .changeFilter(MyReviewFilter.values[index]);
+      return;
+    }
+    switch (event.action) {
+      case 'layout':
+        ref.read(myReviewsProvider.notifier).toggleLayoutType();
+        break;
+      case 'subtitle':
+        ref.read(myReviewsProvider.notifier).toggleSubtitleFilter();
+        break;
+      case 'sort':
+        unawaited(_showSortDialog());
+        break;
+    }
+  }
+
+  String _nativeTabIcon(IconData icon) {
+    if (icon == Icons.bookmark) return 'bookmark';
+    if (icon == Icons.history) return 'history';
+    if (icon == Icons.playlist_play) return 'playlist_play';
+    if (icon == Icons.download) return 'download';
+    if (icon == Icons.subtitles) return 'subtitles';
+    return 'grid_view';
+  }
+
+  String _nativeFilterIcon(MyReviewFilter filter) => switch (filter) {
+    MyReviewFilter.all => 'all_inclusive',
+    MyReviewFilter.marked => 'bookmark',
+    MyReviewFilter.listening => 'headphones',
+    MyReviewFilter.listened => 'check_circle',
+    MyReviewFilter.replay => 'replay',
+    MyReviewFilter.postponed => 'schedule',
+  };
+
+  String _nativeLayoutIcon(MyReviewLayoutType layoutType) =>
+      switch (layoutType) {
+        MyReviewLayoutType.bigGrid => 'grid_3x3',
+        MyReviewLayoutType.smallGrid => 'view_list',
+        MyReviewLayoutType.list => 'view_agenda',
+      };
+
+  String _colorHex(Color color) =>
+      '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
 
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
@@ -194,7 +288,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
 
     final scrolledPastHeader =
         notification.metrics.pixels - notification.metrics.minScrollExtent >=
-            kTextTabBarHeight;
+        kTextTabBarHeight;
 
     if (notification is ScrollUpdateNotification &&
         notification.scrollDelta != null &&
@@ -265,25 +359,36 @@ class _MyScreenState extends ConsumerState<MyScreen>
     }
   }
 
-  void _showSortDialog() {
+  Future<void> _showSortDialog() async {
+    if (_sortDialogOpen) return;
     final state = ref.read(myReviewsProvider);
-    showDialog(
-      context: context,
-      builder: (context) => CommonSortDialog(
-        title: S.of(context).sortOptions,
-        currentOption: state.sortType,
-        currentDirection: state.sortOrder,
-        availableOptions: const [
-          SortOrder.updatedAt,
-          SortOrder.release,
-          SortOrder.review,
-          SortOrder.dlCount,
-        ],
-        onSort: (option, direction) {
-          ref.read(myReviewsProvider.notifier).changeSort(option, direction);
-        },
-      ),
-    );
+    _sortDialogOpen = true;
+    try {
+      await showWithNativeShellSuppressed<void>(
+        context,
+        () => showDialog<void>(
+          context: context,
+          builder: (context) => CommonSortDialog(
+            title: S.of(context).sortOptions,
+            currentOption: state.sortType,
+            currentDirection: state.sortOrder,
+            availableOptions: const [
+              SortOrder.updatedAt,
+              SortOrder.release,
+              SortOrder.review,
+              SortOrder.dlCount,
+            ],
+            onSort: (option, direction) {
+              ref
+                  .read(myReviewsProvider.notifier)
+                  .changeSort(option, direction);
+            },
+          ),
+        ),
+      );
+    } finally {
+      _sortDialogOpen = false;
+    }
   }
 
   @override
@@ -293,15 +398,14 @@ class _MyScreenState extends ConsumerState<MyScreen>
     final tabsSettings = ref.watch(myTabsDisplayProvider);
     final topPadding = MediaQuery.paddingOf(context).top;
     final horizontalPadding = FloatingToolbarLayout.horizontalPadding(context);
-    final tabSwitcherTop = topPadding + 8;
-    final contentTop = tabSwitcherTop + kTextTabBarHeight + 8;
+    final tabSwitcherTop = FloatingToolbarLayout.toolbarTop(topPadding);
+    final contentTop = FloatingToolbarLayout.contentTopAfterRows(topPadding);
     final collapsedToolbarTop = tabSwitcherTop;
     final tabs = _buildTabList(
       tabsSettings,
       contentTop: contentTop,
       collapsedToolbarTop: collapsedToolbarTop,
     );
-
     // 如果标签数量变化，需要重新创建 TabController
     if (_tabController.length != tabs.length) {
       final oldIndex = _tabController.index;
@@ -316,104 +420,167 @@ class _MyScreenState extends ConsumerState<MyScreen>
       _lastTabIndex = _tabController.index;
     }
 
-    final systemOverlayStyle =
-        transparentSystemBarsForBrightness(Theme.of(context).brightness);
+    final requestNativeTopGlass =
+        runtimePlatform.usesNativeHarmonyGlass &&
+        ref.watch(liquidGlassTopBarProvider);
+    final useNativeTopGlass =
+        requestNativeTopGlass &&
+        HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.my);
+    final currentTabIndex = _tabController.index.clamp(0, tabs.length - 1);
+    final secondaryVisible = tabs[currentTabIndex].hasSecondaryToolbar;
+    final myState = ref.watch(myReviewsProvider);
+    if (requestNativeTopGlass) {
+      final colors = Theme.of(context).colorScheme;
+      final subtitleActive = SubtitleFilterMode.fromValue(
+        myState.subtitleFilter,
+      ).isActive;
+      HarmonyChannel.stageNativeTopBarData(
+        page: HarmonyTopBarPage.my,
+        modeLabels: tabs.map((tab) => tab.title).toList(),
+        modeIcons: tabs.map((tab) => _nativeTabIcon(tab.icon)).toList(),
+        modeActions: List.generate(tabs.length, (index) => 'tab_$index'),
+        selectedMode: currentTabIndex,
+        toolIcons: const [],
+        toolActions: const [],
+        toolSelected: const [],
+        toolEnabled: const [],
+        secondaryModeLabels: MyReviewFilter.values
+            .map((filter) => filter.localizedLabel(context))
+            .toList(),
+        secondaryModeIcons: MyReviewFilter.values
+            .map(_nativeFilterIcon)
+            .toList(),
+        secondaryModeActions: List.generate(
+          MyReviewFilter.values.length,
+          (index) => 'filter_$index',
+        ),
+        secondarySelectedMode: myState.filter.index,
+        secondaryToolIcons: [
+          _nativeLayoutIcon(myState.layoutType),
+          subtitleActive ? 'closed_caption' : 'closed_caption_disabled',
+          'sort',
+        ],
+        secondaryToolActions: const ['layout', 'subtitle', 'sort'],
+        secondaryToolSelected: [false, subtitleActive, false],
+        secondaryToolEnabled: const [true, true, true],
+        secondaryVisible: secondaryVisible,
+        collapsed: !_tabSwitcherVisible.value,
+        selectedColor: _colorHex(colors.primary),
+        selectedContainerColor: _colorHex(
+          colors.primary.withValues(alpha: 0.14),
+        ),
+        unselectedColor: _colorHex(colors.onSurfaceVariant),
+        topMaskStrongColor: _colorHex(colors.surface.withValues(alpha: 0.82)),
+        topMaskWeakColor: _colorHex(colors.surface.withValues(alpha: 0.12)),
+      );
+    }
+
+    final systemOverlayStyle = transparentSystemBarsForBrightness(
+      Theme.of(context).brightness,
+    );
 
     return AnnotatedRegion(
-      value: systemOverlayStyle,
-      child: Scaffold(
-        floatingActionButton: AnimatedBuilder(
-          animation: _tabController,
-          builder: (context, child) {
-            final currentIndex = _tabController.index;
-            if (currentIndex >= 0 && currentIndex < tabs.length) {
-              final currentTab = tabs[currentIndex];
-              if (currentTab.showFab && currentTab.fabWidget != null) {
-                return currentTab.fabWidget!;
-              }
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-        body: LiquidGlassDockMediaQuery(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: _handleScrollNotification,
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: tabs.map((tab) => tab.widget).toList(),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ProgressiveTopBlur(height: topPadding + 12),
-              ),
-              Positioned(
-                top: tabSwitcherTop,
-                left: horizontalPadding,
-                right: horizontalPadding,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _tabSwitcherVisible,
-                  builder: (context, visible, child) => IgnorePointer(
-                    ignoring: !visible,
-                    child: AnimatedSlide(
-                      key: const ValueKey('my-tab-switcher'),
-                      offset: visible ? Offset.zero : const Offset(0, -2),
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOutCubic,
-                      child: AnimatedOpacity(
-                        opacity: visible ? 1 : 0,
-                        duration: const Duration(milliseconds: 140),
-                        child: child,
-                      ),
-                    ),
-                  ),
-                  child: FloatingToolbarSurface(
-                    child: SizedBox(
-                      height: 40,
-                      child: TabBar(
+          value: systemOverlayStyle,
+          child: Scaffold(
+            floatingActionButton: AnimatedBuilder(
+              animation: _tabController,
+              builder: (context, child) {
+                final currentIndex = _tabController.index;
+                if (currentIndex >= 0 && currentIndex < tabs.length) {
+                  final currentTab = tabs[currentIndex];
+                  if (currentTab.showFab && currentTab.fabWidget != null) {
+                    return currentTab.fabWidget!;
+                  }
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            body: LiquidGlassDockMediaQuery(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: _handleScrollNotification,
+                      child: TabBarView(
                         controller: _tabController,
-                        isScrollable: true,
-                        tabAlignment: TabAlignment.start,
-                        dividerColor: Colors.transparent,
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        indicator: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        labelColor: Theme.of(context).colorScheme.primary,
-                        unselectedLabelColor:
-                            Theme.of(context).colorScheme.onSurfaceVariant,
-                        splashBorderRadius: BorderRadius.circular(20),
-                        tabs: tabs
-                            .map(
-                              (tab) => Tab(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(tab.icon, size: 18),
-                                    const SizedBox(width: 6),
-                                    Text(tab.title),
-                                  ],
-                                ),
-                              ),
-                            )
-                            .toList(),
+                        children: tabs.map((tab) => tab.widget).toList(),
                       ),
                     ),
                   ),
-                ),
+                  if (!useNativeTopGlass)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: ProgressiveTopBlur(height: topPadding + 12),
+                    ),
+                  if (!useNativeTopGlass)
+                    Positioned(
+                      top: tabSwitcherTop,
+                      left: horizontalPadding,
+                      right: horizontalPadding,
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: _tabSwitcherVisible,
+                        builder: (context, visible, child) => IgnorePointer(
+                          ignoring: !visible,
+                          child: AnimatedSlide(
+                            key: const ValueKey('my-tab-switcher'),
+                            offset: visible ? Offset.zero : const Offset(0, -2),
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOutCubic,
+                            child: AnimatedOpacity(
+                              opacity: visible ? 1 : 0,
+                              duration: const Duration(milliseconds: 140),
+                              child: child,
+                            ),
+                          ),
+                        ),
+                        child: FloatingToolbarSurface(
+                          child: SizedBox(
+                            height: 40,
+                            child: TabBar(
+                              controller: _tabController,
+                              isScrollable: true,
+                              tabAlignment: TabAlignment.start,
+                              dividerColor: Colors.transparent,
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              indicator: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              labelColor: Theme.of(context).colorScheme.primary,
+                              unselectedLabelColor: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              splashBorderRadius: BorderRadius.circular(20),
+                              tabs: tabs
+                                  .map(
+                                    (tab) => Tab(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(tab.icon, size: 18),
+                                          const SizedBox(width: 6),
+                                          Text(tab.title),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
+        )
+        .scrollToTopOnStatusBar(_scrollController)
+        .onNavigationTabReselect(
           controller: widget.reselectController,
           onReselect: _scrollToTopAndRefresh,
         );
@@ -425,56 +592,90 @@ class _MyScreenState extends ConsumerState<MyScreen>
   }) {
     final state = ref.watch(myReviewsProvider);
     final horizontalPadding = FloatingToolbarLayout.horizontalPadding(context);
+    final nativeTopActive = HarmonyChannel.isNativeTopBarActiveFor(
+      HarmonyTopBarPage.my,
+    );
+    final safeAreaTop = MediaQuery.paddingOf(context).top;
+    final contentTop = FloatingToolbarLayout.contentTopAfterRows(
+      safeAreaTop,
+      rows: 2,
+    );
+    final refreshIndicatorEdgeOffset =
+        FloatingToolbarLayout.contentTopAfterRows(
+          safeAreaTop,
+          rows: _tabSwitcherVisible.value ? 2 : 1,
+        );
 
     return Stack(
       children: [
-        Positioned.fill(child: _buildBody(state, topPadding: toolbarTop + 56)),
-        FloatingToolbarPositionFollower(
-          primaryToolbarVisible: _tabSwitcherVisible,
-          visibleTop: toolbarTop,
-          hiddenTop: collapsedToolbarTop,
-          left: horizontalPadding,
-          right: horizontalPadding,
-          child: FloatingFeedToolbar(
-            modeActions: [
-              for (final filter in MyReviewFilter.values)
-                FloatingFeedModeAction(
-                  icon: _getFilterIcon(filter),
-                  label: filter.localizedLabel(context),
-                  isSelected: state.filter == filter,
-                  onPressed: () =>
-                      ref.read(myReviewsProvider.notifier).changeFilter(filter),
-                ),
-            ],
-            toolActions: [
-              FloatingFeedToolAction(
-                icon: _getLayoutIcon(state.layoutType),
-                tooltip: _getLayoutTooltip(state.layoutType),
-                onPressed: () =>
-                    ref.read(myReviewsProvider.notifier).toggleLayoutType(),
-              ),
-              FloatingFeedToolAction(
-                icon: _getSubtitleFilterIcon(state.subtitleFilter),
-                tooltip: SubtitleFilterMode.fromValue(state.subtitleFilter)
-                    .localizedTooltip(context),
-                isSelected:
-                    SubtitleFilterMode.fromValue(state.subtitleFilter).isActive,
-                onPressed: () =>
-                    ref.read(myReviewsProvider.notifier).toggleSubtitleFilter(),
-              ),
-              FloatingFeedToolAction(
-                icon: Icons.sort,
-                tooltip: S.of(context).sort,
-                onPressed: _showSortDialog,
-              ),
-            ],
+        Positioned.fill(
+          child: _buildBody(
+            state,
+            topPadding: contentTop,
+            refreshIndicatorEdgeOffset: nativeTopActive
+                ? refreshIndicatorEdgeOffset
+                : 0,
+            refreshIndicatorDisplacement: nativeTopActive
+                ? FloatingToolbarLayout.nativeRefreshIndicatorDisplacement
+                : 40,
           ),
         ),
+        if (!HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.my))
+          FloatingToolbarPositionFollower(
+            primaryToolbarVisible: _tabSwitcherVisible,
+            visibleTop: toolbarTop,
+            hiddenTop: collapsedToolbarTop,
+            left: horizontalPadding,
+            right: horizontalPadding,
+            child: FloatingFeedToolbar(
+              modeActions: [
+                for (final filter in MyReviewFilter.values)
+                  FloatingFeedModeAction(
+                    icon: _getFilterIcon(filter),
+                    label: filter.localizedLabel(context),
+                    isSelected: state.filter == filter,
+                    onPressed: () => ref
+                        .read(myReviewsProvider.notifier)
+                        .changeFilter(filter),
+                  ),
+              ],
+              toolActions: [
+                FloatingFeedToolAction(
+                  icon: _getLayoutIcon(state.layoutType),
+                  tooltip: _getLayoutTooltip(state.layoutType),
+                  onPressed: () =>
+                      ref.read(myReviewsProvider.notifier).toggleLayoutType(),
+                ),
+                FloatingFeedToolAction(
+                  icon: _getSubtitleFilterIcon(state.subtitleFilter),
+                  tooltip: SubtitleFilterMode.fromValue(
+                    state.subtitleFilter,
+                  ).localizedTooltip(context),
+                  isSelected: SubtitleFilterMode.fromValue(
+                    state.subtitleFilter,
+                  ).isActive,
+                  onPressed: () => ref
+                      .read(myReviewsProvider.notifier)
+                      .toggleSubtitleFilter(),
+                ),
+                FloatingFeedToolAction(
+                  icon: Icons.sort,
+                  tooltip: S.of(context).sort,
+                  onPressed: _showSortDialog,
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildBody(MyReviewsState state, {double topPadding = 0}) {
+  Widget _buildBody(
+    MyReviewsState state, {
+    double topPadding = 0,
+    double refreshIndicatorEdgeOffset = 0,
+    double refreshIndicatorDisplacement = 40,
+  }) {
     if (state.error != null) {
       return Center(
         child: Column(
@@ -494,8 +695,8 @@ class _MyScreenState extends ConsumerState<MyScreen>
             Text(
               state.error!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -532,6 +733,8 @@ class _MyScreenState extends ConsumerState<MyScreen>
       loadMoreError: state.loadMoreError,
       onRetry: () => ref.read(myReviewsProvider.notifier).refresh(),
       onRefresh: () => ref.read(myReviewsProvider.notifier).refresh(),
+      refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
+      refreshIndicatorDisplacement: refreshIndicatorDisplacement,
       pagination: VirtualizedPagination(
         currentPage: state.currentPage,
         pageSize: state.layoutType == MyReviewLayoutType.list
@@ -552,8 +755,8 @@ class _MyScreenState extends ConsumerState<MyScreen>
       padding: state.layoutType == MyReviewLayoutType.list
           ? EdgeInsets.fromLTRB(8, topPadding + 8, 8, 8)
           : MediaQuery.orientationOf(context) == Orientation.landscape
-              ? EdgeInsets.fromLTRB(24, topPadding + 8, 24, 24)
-              : EdgeInsets.fromLTRB(8, topPadding + 8, 8, 8),
+          ? EdgeInsets.fromLTRB(24, topPadding + 8, 24, 24)
+          : EdgeInsets.fromLTRB(8, topPadding + 8, 8, 8),
     );
   }
 }
@@ -566,6 +769,7 @@ class _TabInfo {
   final Widget widget;
   final bool showFab;
   final Widget? fabWidget;
+  final bool hasSecondaryToolbar;
 
   const _TabInfo({
     required this.title,
@@ -574,5 +778,6 @@ class _TabInfo {
     required this.widget,
     this.showFab = false,
     this.fabWidget,
+    this.hasSecondaryToolbar = false,
   });
 }

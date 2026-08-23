@@ -942,6 +942,42 @@ abstract class S {
   /// **'Player, detail page, cards, etc.'**
   String get uiSettingsSubtitle;
 
+  /// No description provided for @experimentalFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental Features'**
+  String get experimentalFeatures;
+
+  /// No description provided for @experimentalFeaturesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Try platform-specific features that may change or be unstable.'**
+  String get experimentalFeaturesDesc;
+
+  /// No description provided for @liquidGlassTopBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Bar Liquid Glass'**
+  String get liquidGlassTopBar;
+
+  /// No description provided for @liquidGlassTopBarDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the translucent glass effect for feed filters and top action buttons.'**
+  String get liquidGlassTopBarDesc;
+
+  /// No description provided for @liquidGlassBottomBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottom Bar Liquid Glass'**
+  String get liquidGlassBottomBar;
+
+  /// No description provided for @liquidGlassBottomBarDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the translucent glass effect for the bottom navigation and mini player.'**
+  String get liquidGlassBottomBarDesc;
+
   /// No description provided for @liquidGlassNavigation.
   ///
   /// In en, this message translates to:

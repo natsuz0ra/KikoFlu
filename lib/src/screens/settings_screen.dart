@@ -7,6 +7,7 @@ import 'account_management_screen.dart';
 import 'download_path_settings_screen.dart';
 import 'theme_settings_screen.dart';
 import 'ui_settings_screen.dart';
+import 'experimental_features_screen.dart';
 import 'preferences_screen.dart';
 import 'about_screen.dart';
 import 'permissions_screen.dart';
@@ -473,6 +474,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => const UiSettingsScreen(),
+              ),
+            );
+          },
+        ),
+        SettingsNavigationTile(
+          icon: Icons.science_outlined,
+          title: S.of(context).experimentalFeatures,
+          subtitle: S.of(context).experimentalFeaturesDesc,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const ExperimentalFeaturesScreen(),
               ),
             );
           },

@@ -10,6 +10,7 @@ void main() {
       expect(platform.isOhos, isTrue);
       expect(platform.isMobile, isTrue);
       expect(platform.isDesktop, isFalse);
+      expect(platform.usesNativeHarmonyGlass, isTrue);
       expect(platform.supportsDesktopWindow, isFalse);
       expect(platform.supportsMpvBackend, isFalse);
       expect(platform.supportsSqfliteFfi, isFalse);
@@ -25,6 +26,7 @@ void main() {
       expect(platform.supportsMpvBackend, isTrue);
       expect(platform.supportsDesktopWindow, isFalse);
       expect(platform.supportsAudioSessionConfiguration, isTrue);
+      expect(platform.usesNativeHarmonyGlass, isFalse);
     });
 
     test('preserves iOS capabilities', () {
@@ -33,6 +35,7 @@ void main() {
       expect(platform.isMobile, isTrue);
       expect(platform.supportsMpvBackend, isFalse);
       expect(platform.supportsAudioSessionConfiguration, isTrue);
+      expect(platform.usesNativeHarmonyGlass, isFalse);
     });
 
     test('preserves desktop capabilities', () {
@@ -43,8 +46,11 @@ void main() {
         expect(platform.isMobile, isFalse, reason: operatingSystem);
         expect(platform.supportsDesktopWindow, isTrue, reason: operatingSystem);
         expect(platform.supportsMpvBackend, isTrue, reason: operatingSystem);
-        expect(platform.usesDesktopStoragePaths, isTrue,
-            reason: operatingSystem);
+        expect(
+          platform.usesDesktopStoragePaths,
+          isTrue,
+          reason: operatingSystem,
+        );
       }
     });
 

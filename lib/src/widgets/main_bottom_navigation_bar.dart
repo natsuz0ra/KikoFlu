@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:real_liquid_glass/real_liquid_glass.dart';
 
 import 'liquid_glass_layout.dart';
+import '../platform/runtime_platform.dart';
 
 class MainBottomNavigationBar extends StatelessWidget {
   const MainBottomNavigationBar({
@@ -23,19 +24,47 @@ class MainBottomNavigationBar extends StatelessWidget {
   final List<NavigationDestination> destinations;
   final Widget miniPlayer;
   final bool liquidGlass;
-  final double fallbackGlassTransparency;
   final bool showUpdateBadge;
   final ValueChanged<double>? onLayoutExtentChanged;
 
   @override
   Widget build(BuildContext context) {
+    if (liquidGlass && runtimePlatform.usesNativeHarmonyGlass) {
+      // ArkUI 原生层负责材质背景，Flutter 仅绘制交互内容。
+      return LiquidGlassDockExtentReporter(
+        onChanged: onLayoutExtentChanged ?? (_) {},
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: LiquidGlassLayout.dockBottomInset(context),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              miniPlayer,
+              NavigationBar(
+                height: navigationBarHeight,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainer.withValues(alpha: 0.88),
+                surfaceTintColor: Theme.of(context).colorScheme.primary,
+                shadowColor: Theme.of(context).colorScheme.shadow,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                selectedIndex: selectedIndex,
+                onDestinationSelected: onDestinationSelected,
+                destinations: destinations,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (liquidGlass) {
       return _LiquidGlassBottomNavigation(
         selectedIndex: selectedIndex,
         onDestinationSelected: onDestinationSelected,
         destinations: destinations,
         miniPlayer: miniPlayer,
-        fallbackGlassTransparency: fallbackGlassTransparency,
         showUpdateBadge: showUpdateBadge,
         onLayoutExtentChanged: onLayoutExtentChanged,
       );
@@ -63,7 +92,6 @@ class _LiquidGlassBottomNavigation extends StatelessWidget {
     required this.onDestinationSelected,
     required this.destinations,
     required this.miniPlayer,
-    required this.fallbackGlassTransparency,
     required this.showUpdateBadge,
     required this.onLayoutExtentChanged,
   });
@@ -72,7 +100,6 @@ class _LiquidGlassBottomNavigation extends StatelessWidget {
   final ValueChanged<int> onDestinationSelected;
   final List<NavigationDestination> destinations;
   final Widget miniPlayer;
-  final double fallbackGlassTransparency;
   final bool showUpdateBadge;
   final ValueChanged<double>? onLayoutExtentChanged;
 
@@ -168,7 +195,7 @@ class _LiquidGlassBottomNavigation extends StatelessWidget {
                           height: navigationBarHeight,
                           showLabels: true,
                           tint: Theme.of(context).colorScheme.primary,
-                          fallbackIntensity: fallbackGlassTransparency,
+                          fallbackIntensity: 0.86,
                         ),
                       ),
                     );

@@ -20,8 +20,13 @@ import 'liquid_glass_layout.dart';
 
 class MiniPlayer extends ConsumerStatefulWidget {
   final bool enableArtworkHero;
+  final bool useNativeHarmonyStyle;
 
-  const MiniPlayer({super.key, this.enableArtworkHero = true});
+  const MiniPlayer({
+    super.key,
+    this.enableArtworkHero = true,
+    this.useNativeHarmonyStyle = false,
+  });
 
   @override
   ConsumerState<MiniPlayer> createState() => _MiniPlayerState();
@@ -45,8 +50,6 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
     final authState = ref.watch(authProvider);
     final isMiniPlayerVisible = ref.watch(miniPlayerVisibilityProvider);
     final useLiquidGlass = ref.watch(liquidGlassNavigationProvider);
-    final fallbackGlassTransparency =
-        ref.watch(fallbackGlassTransparencyProvider);
 
     // 启用自动字幕加载器
     ref.watch(lyricAutoLoaderProvider);
@@ -136,10 +139,9 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                       ? null
                       : Border(
                           top: BorderSide(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .outline
-                                .withValues(alpha: 0.2),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.2),
                             width: 1,
                           ),
                         ),
@@ -169,8 +171,8 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                         final dur = duration.valueOrNull;
                         if (dur != null) {
                           final seekPosition = Duration(
-                            milliseconds:
-                                (_dragValue * dur.inMilliseconds).round(),
+                            milliseconds: (_dragValue * dur.inMilliseconds)
+                                .round(),
                           );
                           ref
                               .read(audioPlayerControllerProvider.notifier)
@@ -189,8 +191,8 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                           final dur = duration.valueOrNull;
                           if (dur != null) {
                             final seekPosition = Duration(
-                              milliseconds:
-                                  (value * dur.inMilliseconds).round(),
+                              milliseconds: (value * dur.inMilliseconds)
+                                  .round(),
                             );
                             ref
                                 .read(audioPlayerControllerProvider.notifier)
@@ -203,12 +205,15 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                           // Lyric display (only show when playing and has lyrics)
                           Consumer(
                             builder: (context, ref, child) {
-                              final currentLyric =
-                                  ref.watch(currentLyricTextProvider);
-                              final lyricState =
-                                  ref.watch(lyricControllerProvider);
-                              final lyricSettings =
-                                  ref.watch(playerLyricSettingsProvider);
+                              final currentLyric = ref.watch(
+                                currentLyricTextProvider,
+                              );
+                              final lyricState = ref.watch(
+                                lyricControllerProvider,
+                              );
+                              final lyricSettings = ref.watch(
+                                playerLyricSettingsProvider,
+                              );
                               final hasLyrics = lyricState.lyrics.isNotEmpty;
 
                               // Only show when playing and has lyrics
@@ -225,13 +230,11 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                 ),
                                 child: Text(
                                   currentLyric,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
+                                  style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
                                         fontSize: lyricSettings.miniFontSize,
                                         height: lyricSettings.miniLineHeight,
                                         fontWeight: FontWeight.w600,
@@ -254,12 +257,12 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                   disabledThumbRadius: 0,
                                 ),
                                 overlayShape: SliderComponentShape.noOverlay,
-                                activeTrackColor:
-                                    Theme.of(context).colorScheme.primary,
-                                inactiveTrackColor: Theme.of(context)
-                                    .colorScheme
-                                    .outline
-                                    .withValues(alpha: 0.2),
+                                activeTrackColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                inactiveTrackColor: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withValues(alpha: 0.2),
                               ),
                               child: Slider(
                                 value: displayProgress.clamp(0.0, 1.0),
@@ -273,12 +276,14 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                   final dur = duration.valueOrNull;
                                   if (dur != null) {
                                     final seekPosition = Duration(
-                                      milliseconds:
-                                          (value * dur.inMilliseconds).round(),
+                                      milliseconds: (value * dur.inMilliseconds)
+                                          .round(),
                                     );
                                     ref
-                                        .read(audioPlayerControllerProvider
-                                            .notifier)
+                                        .read(
+                                          audioPlayerControllerProvider
+                                              .notifier,
+                                        )
                                         .seekAndPersist(seekPosition);
                                   }
                                   setState(() {
@@ -295,7 +300,9 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         child: Row(
                           children: [
                             // Left tap area: artwork + info opens full player
@@ -369,17 +376,23 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                   onPressed: () async {
                                     try {
                                       await ref
-                                          .read(audioPlayerControllerProvider
-                                              .notifier)
+                                          .read(
+                                            audioPlayerControllerProvider
+                                                .notifier,
+                                          )
                                           .skipToPrevious();
                                     } catch (e) {
                                       if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text(e
-                                              .toString()
-                                              .replaceAll('Exception: ', '')),
+                                          content: Text(
+                                            e.toString().replaceAll(
+                                              'Exception: ',
+                                              '',
+                                            ),
+                                          ),
                                           duration: const Duration(seconds: 1),
                                         ),
                                       );
@@ -395,7 +408,8 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                     child: Padding(
                                       padding: EdgeInsets.all(2),
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2.5),
+                                        strokeWidth: 2.5,
+                                      ),
                                     ),
                                   )
                                 else
@@ -403,36 +417,48 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                     onPressed: () {
                                       if (isPlaying) {
                                         ref
-                                            .read(audioPlayerControllerProvider
-                                                .notifier)
+                                            .read(
+                                              audioPlayerControllerProvider
+                                                  .notifier,
+                                            )
                                             .pause();
                                       } else {
                                         ref
-                                            .read(audioPlayerControllerProvider
-                                                .notifier)
+                                            .read(
+                                              audioPlayerControllerProvider
+                                                  .notifier,
+                                            )
                                             .play();
                                       }
                                     },
-                                    icon: Icon(isPlaying
-                                        ? Icons.pause
-                                        : Icons.play_arrow),
+                                    icon: Icon(
+                                      isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
+                                    ),
                                     iconSize: 28,
                                   ),
                                 IconButton(
                                   onPressed: () async {
                                     try {
                                       await ref
-                                          .read(audioPlayerControllerProvider
-                                              .notifier)
+                                          .read(
+                                            audioPlayerControllerProvider
+                                                .notifier,
+                                          )
                                           .skipToNext();
                                     } catch (e) {
                                       if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text(e
-                                              .toString()
-                                              .replaceAll('Exception: ', '')),
+                                          content: Text(
+                                            e.toString().replaceAll(
+                                              'Exception: ',
+                                              '',
+                                            ),
+                                          ),
                                           duration: const Duration(seconds: 1),
                                         ),
                                       );
@@ -444,8 +470,9 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                 // Volume control (desktop platforms only)
                                 Consumer(
                                   builder: (context, ref, child) {
-                                    final audioState = ref
-                                        .watch(audioPlayerControllerProvider);
+                                    final audioState = ref.watch(
+                                      audioPlayerControllerProvider,
+                                    );
                                     // 使用临时音量值避免拖动时重建
                                     final displayVolume = _isAdjustingVolume
                                         ? _tempVolume
@@ -458,8 +485,10 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                                           _tempVolume = value;
                                         });
                                         ref
-                                            .read(audioPlayerControllerProvider
-                                                .notifier)
+                                            .read(
+                                              audioPlayerControllerProvider
+                                                  .notifier,
+                                            )
                                             .setVolume(value);
                                       },
                                       onVolumeChangeEnd: () {
@@ -483,6 +512,30 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
 
               if (!useLiquidGlass) return playerContent;
 
+              if (widget.useNativeHarmonyStyle) {
+                final colors = Theme.of(context).colorScheme;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.bottomCenter,
+                    child: RepaintBoundary(
+                      child: LiquidGlassContainer(
+                        shape: const LiquidGlassShape.roundedRectangle(22),
+                        style: LiquidGlassStyle.regular,
+                        tint: colors.surfaceContainer.withValues(alpha: 0.14),
+                        fallbackIntensity: 0.86,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: playerContent,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
               return Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: LiquidGlassLayout.horizontalPadding,
@@ -497,7 +550,9 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                       LiquidGlassLayout.cornerRadius,
                     ),
                     style: LiquidGlassStyle.regular,
-                    fallbackIntensity: fallbackGlassTransparency,
+                    fallbackIntensity: ref.watch(
+                      fallbackGlassTransparencyProvider,
+                    ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(
                         LiquidGlassLayout.cornerRadius,
@@ -536,11 +591,16 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
               borderRadius: BorderRadius.circular(8),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: LocalFileUrl.isLocalFileUrl(
-                        workCoverUrl ?? track.artworkUrl)
+                child:
+                    LocalFileUrl.isLocalFileUrl(
+                      workCoverUrl ?? track.artworkUrl,
+                    )
                     ? Image.file(
-                        File(LocalFileUrl.pathFromUrl(
-                            workCoverUrl ?? track.artworkUrl)!),
+                        File(
+                          LocalFileUrl.pathFromUrl(
+                            workCoverUrl ?? track.artworkUrl,
+                          )!,
+                        ),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return const Icon(Icons.album, size: 32);
@@ -554,26 +614,19 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) =>
                             const Icon(Icons.album, size: 32),
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        placeholder: (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
                       ),
               ),
             )
-          : const Icon(
-              Icons.album,
-              size: 32,
-            ),
+          : const Icon(Icons.album, size: 32),
     );
 
     if (!widget.enableArtworkHero) {
       return image;
     }
 
-    return Hero(
-      tag: 'audio_player_artwork_${track.id}',
-      child: image,
-    );
+    return Hero(tag: 'audio_player_artwork_${track.id}', child: image);
   }
 }
 
@@ -605,8 +658,12 @@ class _PlayerPageRoute<T> extends PageRoute<T>
   Duration get reverseTransitionDuration => const Duration(milliseconds: 400);
 
   @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation,
-      Animation<double> secondaryAnimation, Widget child) {
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
     // On iOS, always delegate to CupertinoRouteTransitionMixin so that
     // the back-gesture detector stays in the widget tree at all times.
     // This is critical — without it the HorizontalDragGestureRecognizer is
@@ -634,9 +691,10 @@ class _PlayerPageRoute<T> extends PageRoute<T>
       if (animation.status == AnimationStatus.forward ||
           animation.status == AnimationStatus.completed) {
         const curve = Curves.easeOutCubic;
-        final scale = Tween<double>(begin: 0.0, end: 1.0)
-            .chain(CurveTween(curve: curve))
-            .evaluate(animation);
+        final scale = Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: curve)).evaluate(animation);
         final opacity = CurveTween(curve: Curves.easeIn).evaluate(animation);
 
         // Wrap with the Cupertino gesture detector so swiping can start
@@ -654,9 +712,10 @@ class _PlayerPageRoute<T> extends PageRoute<T>
 
     // Fallback / non-iOS: simple scale + fade
     const curve = Curves.easeOutCubic;
-    final scale = Tween<double>(begin: 0.0, end: 1.0)
-        .chain(CurveTween(curve: curve))
-        .evaluate(animation);
+    final scale = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).chain(CurveTween(curve: curve)).evaluate(animation);
     final opacity = CurveTween(curve: Curves.easeIn).evaluate(animation);
     return Transform.scale(
       scale: scale,

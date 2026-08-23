@@ -70,6 +70,29 @@ void main() {
     );
   });
 
+  testWidgets('forwards a bounded native top inset to RefreshIndicator', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        VirtualizedSliverCollection<int>(
+          items: const [1, 2, 3],
+          itemId: (item) => item,
+          onRefresh: () async {},
+          refreshIndicatorEdgeOffset: 96,
+          refreshIndicatorDisplacement: 136,
+          itemBuilder: (context, item, index) => _IdentityTile(item: item),
+        ),
+      ),
+    );
+
+    final indicator = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
+    );
+    expect(indicator.edgeOffset, 96);
+    expect(indicator.displacement, 136);
+  });
+
   testWidgets('stable item identity preserves item state after reordering',
       (tester) async {
     final items = ValueNotifier<List<int>>([1, 2, 3]);

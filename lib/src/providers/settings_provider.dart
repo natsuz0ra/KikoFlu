@@ -7,6 +7,7 @@ import 'package:real_liquid_glass/real_liquid_glass.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/audio_gain_settings.dart';
 import '../models/sort_options.dart';
+import '../platform/runtime_platform.dart';
 
 /// Triggers when Settings screen should refresh cache-related information.
 final settingsCacheRefreshTriggerProvider = StateProvider<int>((ref) => 0);
@@ -14,7 +15,7 @@ final settingsCacheRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 /// Triggers when Subtitle Library screen should refresh (e.g., after path change).
 final subtitleLibraryRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
-/// Controls the optional liquid-glass treatment for the main navigation and
+/// Controls the optional liquid-glass treatment for the bottom navigation and
 /// the mini player. Only Apple OS versions with native Liquid Glass support
 /// enable it by default; fallback remains available as an explicit choice.
 class LiquidGlassNavigationNotifier extends StateNotifier<bool> {
@@ -28,6 +29,7 @@ class LiquidGlassNavigationNotifier extends StateNotifier<bool> {
     final isApplePlatform =
         defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
+    if (runtimePlatform.isOhos) return true;
     return isApplePlatform && capabilities?.nativeGlass == true;
   }
 
@@ -76,11 +78,61 @@ class LiquidGlassNavigationNotifier extends StateNotifier<bool> {
 
 final liquidGlassNavigationProvider =
     StateNotifierProvider<LiquidGlassNavigationNotifier, bool>((ref) {
-  return LiquidGlassNavigationNotifier();
-});
+      return LiquidGlassNavigationNotifier();
+    });
 
-/// Controls the transparency of Flutter-drawn glass on non-Apple platforms.
-/// Native iOS and macOS materials continue to follow the system appearance.
+/// Controls the optional liquid-glass treatment for feed top toolbars.
+class LiquidGlassTopBarNotifier extends StateNotifier<bool> {
+  static const String preferenceKey = 'liquid_glass_top_bar_enabled';
+
+  LiquidGlassTopBarNotifier()
+    : super(LiquidGlassNavigationNotifier.defaultValue) {
+    _loadPreference();
+  }
+
+  bool _changedLocally = false;
+
+  Future<void> _loadPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted || _changedLocally) return;
+      final savedValue = prefs.getBool(preferenceKey);
+      if (savedValue != null) {
+        state = savedValue;
+        return;
+      }
+
+      final capabilities =
+          LiquidGlass.cachedCapabilities ?? await LiquidGlass.capabilities();
+      if (!mounted || _changedLocally) return;
+      state = LiquidGlassNavigationNotifier.defaultForCapabilities(
+        capabilities,
+      );
+    } catch (_) {
+      if (!mounted || _changedLocally) return;
+      state = LiquidGlassNavigationNotifier.defaultValue;
+    }
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    _changedLocally = true;
+    state = enabled;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(preferenceKey, enabled);
+    } catch (_) {
+      // Keep the in-memory value when persistence is unavailable.
+    }
+  }
+}
+
+final liquidGlassTopBarProvider =
+    StateNotifierProvider<LiquidGlassTopBarNotifier, bool>((ref) {
+      return LiquidGlassTopBarNotifier();
+    });
+
+/// 保留旧配置的存储兼容层，实际设置页不再暴露该选项。
+/// 非鸿蒙平台的 Flutter fallback 仍可由测试和旧用户偏好读取。
 class FallbackGlassTransparencyNotifier extends StateNotifier<double> {
   static const String preferenceKey = 'fallback_glass_transparency';
   static const double defaultValue = 0.4;
@@ -98,10 +150,7 @@ class FallbackGlassTransparencyNotifier extends StateNotifier<double> {
       final prefs = await SharedPreferences.getInstance();
       if (!mounted || _changedLocally) return;
       state = normalize(prefs.getDouble(preferenceKey) ?? defaultValue);
-    } catch (_) {
-      if (!mounted || _changedLocally) return;
-      state = defaultValue;
-    }
+    } catch (_) {}
   }
 
   void previewTransparency(double value) {
@@ -114,18 +163,16 @@ class FallbackGlassTransparencyNotifier extends StateNotifier<double> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble(preferenceKey, state);
-    } catch (_) {
-      // Keep the in-memory value when persistence is unavailable.
-    }
+    } catch (_) {}
   }
 
   Future<void> resetToDefault() => setTransparency(defaultValue);
 }
 
-final fallbackGlassTransparencyProvider = StateNotifierProvider<
-    FallbackGlassTransparencyNotifier, double>((ref) {
-  return FallbackGlassTransparencyNotifier();
-});
+final fallbackGlassTransparencyProvider =
+    StateNotifierProvider<FallbackGlassTransparencyNotifier, double>((ref) {
+      return FallbackGlassTransparencyNotifier();
+    });
 
 /// 字幕库匹配优先级
 enum SubtitleLibraryPriority {
@@ -183,10 +230,13 @@ class SubtitleLibraryPriorityNotifier
 }
 
 /// 字幕库优先级提供者
-final subtitleLibraryPriorityProvider = StateNotifierProvider<
-    SubtitleLibraryPriorityNotifier, SubtitleLibraryPriority>((ref) {
-  return SubtitleLibraryPriorityNotifier();
-});
+final subtitleLibraryPriorityProvider =
+    StateNotifierProvider<
+      SubtitleLibraryPriorityNotifier,
+      SubtitleLibraryPriority
+    >((ref) {
+      return SubtitleLibraryPriorityNotifier();
+    });
 
 /// 音频格式类型
 enum AudioFormat {
@@ -237,10 +287,14 @@ enum TranslationTargetLanguage {
   Locale resolveLocale(Locale appLocale) {
     return switch (this) {
       TranslationTargetLanguage.followApp => appLocale,
-      TranslationTargetLanguage.zhHans =>
-        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
-      TranslationTargetLanguage.zhHant =>
-        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      TranslationTargetLanguage.zhHans => const Locale.fromSubtags(
+        languageCode: 'zh',
+        scriptCode: 'Hans',
+      ),
+      TranslationTargetLanguage.zhHant => const Locale.fromSubtags(
+        languageCode: 'zh',
+        scriptCode: 'Hant',
+      ),
       TranslationTargetLanguage.english => const Locale('en'),
       TranslationTargetLanguage.japanese => const Locale('ja'),
       TranslationTargetLanguage.russian => const Locale('ru'),
@@ -359,8 +413,8 @@ class LLMSettingsNotifier extends StateNotifier<LLMSettings> {
 
 final llmSettingsProvider =
     StateNotifierProvider<LLMSettingsNotifier, LLMSettings>((ref) {
-  return LLMSettingsNotifier();
-});
+      return LLMSettingsNotifier();
+    });
 
 /// 翻译源设置
 class TranslationSourceNotifier extends StateNotifier<TranslationSource> {
@@ -400,8 +454,8 @@ class TranslationSourceNotifier extends StateNotifier<TranslationSource> {
 
 final translationSourceProvider =
     StateNotifierProvider<TranslationSourceNotifier, TranslationSource>((ref) {
-  return TranslationSourceNotifier();
-});
+      return TranslationSourceNotifier();
+    });
 
 /// Controls whether translated lyrics are written to the subtitle library.
 class AutoSaveTranslatedLyricsNotifier extends StateNotifier<bool> {
@@ -444,8 +498,8 @@ class AutoSaveTranslatedLyricsNotifier extends StateNotifier<bool> {
 
 final autoSaveTranslatedLyricsProvider =
     StateNotifierProvider<AutoSaveTranslatedLyricsNotifier, bool>((ref) {
-  return AutoSaveTranslatedLyricsNotifier();
-});
+      return AutoSaveTranslatedLyricsNotifier();
+    });
 
 /// 翻译语言设置
 class TranslationLanguagePreferencesNotifier
@@ -455,7 +509,7 @@ class TranslationLanguagePreferencesNotifier
       'translation_custom_target_language';
 
   TranslationLanguagePreferencesNotifier()
-      : super(const TranslationLanguagePreferences()) {
+    : super(const TranslationLanguagePreferences()) {
     _loadPreferences();
   }
 
@@ -502,11 +556,13 @@ class TranslationLanguagePreferencesNotifier
   }
 }
 
-final translationLanguagePreferencesProvider = StateNotifierProvider<
-    TranslationLanguagePreferencesNotifier,
-    TranslationLanguagePreferences>((ref) {
-  return TranslationLanguagePreferencesNotifier();
-});
+final translationLanguagePreferencesProvider =
+    StateNotifierProvider<
+      TranslationLanguagePreferencesNotifier,
+      TranslationLanguagePreferences
+    >((ref) {
+      return TranslationLanguagePreferencesNotifier();
+    });
 
 /// 音频格式优先级设置
 class AudioFormatPreference {
@@ -524,9 +580,7 @@ class AudioFormatPreference {
   });
 
   AudioFormatPreference copyWith({List<AudioFormat>? priority}) {
-    return AudioFormatPreference(
-      priority: priority ?? this.priority,
-    );
+    return AudioFormatPreference(priority: priority ?? this.priority);
   }
 }
 
@@ -548,10 +602,12 @@ class AudioFormatPreferenceNotifier
 
       if (savedOrder != null && savedOrder.isNotEmpty) {
         final priority = savedOrder
-            .map((ext) => AudioFormat.values.firstWhere(
-                  (format) => format.extension == ext,
-                  orElse: () => AudioFormat.mp3,
-                ))
+            .map(
+              (ext) => AudioFormat.values.firstWhere(
+                (format) => format.extension == ext,
+                orElse: () => AudioFormat.mp3,
+              ),
+            )
             .toList();
 
         // 确保所有格式都存在
@@ -595,9 +651,10 @@ class AudioFormatPreferenceNotifier
 /// 音频格式优先级提供者
 final audioFormatPreferenceProvider =
     StateNotifierProvider<AudioFormatPreferenceNotifier, AudioFormatPreference>(
-        (ref) {
-  return AudioFormatPreferenceNotifier();
-});
+      (ref) {
+        return AudioFormatPreferenceNotifier();
+      },
+    );
 
 /// 下一首预加载阈值档位
 enum PreloadThresholdMode {
@@ -611,9 +668,9 @@ enum PreloadThresholdMode {
   const PreloadThresholdMode(this.value);
 
   static PreloadThresholdMode fromValue(String? v) => values.firstWhere(
-        (m) => m.value == v,
-        orElse: () => PreloadThresholdMode.seconds10,
-      );
+    (m) => m.value == v,
+    orElse: () => PreloadThresholdMode.seconds10,
+  );
 }
 
 /// 下一首预加载设置
@@ -714,10 +771,11 @@ class PreloadNextSettingsNotifier extends StateNotifier<PreloadNextSettings> {
 
 /// 下一首预加载设置提供者
 final preloadNextSettingsProvider =
-    StateNotifierProvider<PreloadNextSettingsNotifier, PreloadNextSettings>(
-        (ref) {
-  return PreloadNextSettingsNotifier();
-});
+    StateNotifierProvider<PreloadNextSettingsNotifier, PreloadNextSettings>((
+      ref,
+    ) {
+      return PreloadNextSettingsNotifier();
+    });
 
 /// 防社死设置
 class PrivacyModeSettings {
@@ -843,10 +901,11 @@ class PrivacyModeSettingsNotifier extends StateNotifier<PrivacyModeSettings> {
 
 /// 防社死设置提供者
 final privacyModeSettingsProvider =
-    StateNotifierProvider<PrivacyModeSettingsNotifier, PrivacyModeSettings>(
-        (ref) {
-  return PrivacyModeSettingsNotifier();
-});
+    StateNotifierProvider<PrivacyModeSettingsNotifier, PrivacyModeSettings>((
+      ref,
+    ) {
+      return PrivacyModeSettingsNotifier();
+    });
 
 class AudioHapticsSettings {
   static const double minIntensity = 0.2;
@@ -861,10 +920,7 @@ class AudioHapticsSettings {
     this.intensity = defaultIntensity,
   });
 
-  AudioHapticsSettings copyWith({
-    bool? enabled,
-    double? intensity,
-  }) {
+  AudioHapticsSettings copyWith({bool? enabled, double? intensity}) {
     return AudioHapticsSettings(
       enabled: enabled ?? this.enabled,
       intensity: normalizeIntensity(intensity ?? this.intensity),
@@ -940,10 +996,11 @@ class AudioHapticsSettingsNotifier extends StateNotifier<AudioHapticsSettings> {
 }
 
 final audioHapticsSettingsProvider =
-    StateNotifierProvider<AudioHapticsSettingsNotifier, AudioHapticsSettings>(
-        (ref) {
-  return AudioHapticsSettingsNotifier();
-});
+    StateNotifierProvider<AudioHapticsSettingsNotifier, AudioHapticsSettings>((
+      ref,
+    ) {
+      return AudioHapticsSettingsNotifier();
+    });
 
 class AudioGainSettingsNotifier extends StateNotifier<AudioGainSettings> {
   static const String preferenceKey = 'global_audio_gain_db';
@@ -970,9 +1027,7 @@ class AudioGainSettingsNotifier extends StateNotifier<AudioGainSettings> {
 
   Future<void> setDecibels(double decibels) async {
     _changedLocally = true;
-    state = AudioGainSettings(
-      decibels: AudioGainSettings.normalize(decibels),
-    );
+    state = AudioGainSettings(decibels: AudioGainSettings.normalize(decibels));
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble(preferenceKey, state.decibels);
@@ -988,8 +1043,8 @@ class AudioGainSettingsNotifier extends StateNotifier<AudioGainSettings> {
 
 final audioGainSettingsProvider =
     StateNotifierProvider<AudioGainSettingsNotifier, AudioGainSettings>((ref) {
-  return AudioGainSettingsNotifier();
-});
+      return AudioGainSettingsNotifier();
+    });
 
 /// 分页大小设置
 class PageSizeNotifier extends StateNotifier<int> {
@@ -1061,8 +1116,8 @@ class KeepScreenAwakeNotifier extends StateNotifier<bool> {
 
 final keepScreenAwakeProvider =
     StateNotifierProvider<KeepScreenAwakeNotifier, bool>((ref) {
-  return KeepScreenAwakeNotifier();
-});
+      return KeepScreenAwakeNotifier();
+    });
 
 /// 默认排序设置状态
 class DefaultSortState {
@@ -1106,8 +1161,8 @@ class AudioPassthroughNotifier extends StateNotifier<bool> {
 /// 音频直通模式提供者
 final audioPassthroughProvider =
     StateNotifierProvider<AudioPassthroughNotifier, bool>((ref) {
-  return AudioPassthroughNotifier();
-});
+      return AudioPassthroughNotifier();
+    });
 
 /// 默认排序设置
 class DefaultSortNotifier extends StateNotifier<DefaultSortState> {
@@ -1147,7 +1202,9 @@ class DefaultSortNotifier extends StateNotifier<DefaultSortState> {
   }
 
   Future<void> updateDefaultSort(
-      SortOrder order, SortDirection direction) async {
+    SortOrder order,
+    SortDirection direction,
+  ) async {
     state = DefaultSortState(order: order, direction: direction);
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1162,8 +1219,8 @@ class DefaultSortNotifier extends StateNotifier<DefaultSortState> {
 /// 默认排序提供者
 final defaultSortProvider =
     StateNotifierProvider<DefaultSortNotifier, DefaultSortState>((ref) {
-  return DefaultSortNotifier();
-});
+      return DefaultSortNotifier();
+    });
 
 /// 屏蔽列表状态
 class BlockedItemsState {
@@ -1256,7 +1313,8 @@ class BlockedItemsNotifier extends StateNotifier<BlockedItemsState> {
 
   Future<void> removeCircle(String circle) async {
     state = state.copyWith(
-        circles: state.circles.where((c) => c != circle).toList());
+      circles: state.circles.where((c) => c != circle).toList(),
+    );
     await _savePreferences();
   }
 }
@@ -1264,5 +1322,5 @@ class BlockedItemsNotifier extends StateNotifier<BlockedItemsState> {
 /// 屏蔽列表提供者
 final blockedItemsProvider =
     StateNotifierProvider<BlockedItemsNotifier, BlockedItemsState>((ref) {
-  return BlockedItemsNotifier();
-});
+      return BlockedItemsNotifier();
+    });
