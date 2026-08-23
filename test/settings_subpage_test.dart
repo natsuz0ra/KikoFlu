@@ -85,7 +85,7 @@ void main() {
     final list = tester.widget<ReorderableListView>(
       find.byType(ReorderableListView),
     );
-    list.onReorder!(0, 3);
+    list.onReorder(0, 3);
 
     expect(updatedOrder, ['b', 'c', 'a']);
     expect(find.text('Save Settings'), findsNothing);
@@ -113,7 +113,7 @@ void main() {
     final list = tester.widget<ReorderableListView>(
       find.byType(ReorderableListView),
     );
-    list.onReorder!(0, 2);
+    list.onReorder(0, 2);
     await tester.pump();
     await tester.runAsync(_pumpPreferences);
 
@@ -145,7 +145,7 @@ void main() {
     final list = tester.widget<ReorderableListView>(
       find.byType(ReorderableListView),
     );
-    list.onReorder!(0, 2);
+    list.onReorder(0, 2);
     await tester.pump();
     await tester.runAsync(_pumpPreferences);
 

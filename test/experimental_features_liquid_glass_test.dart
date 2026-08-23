@@ -9,11 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 Widget _testApp(ProviderContainer container) {
   return UncontrolledProviderScope(
     container: container,
-    child: MaterialApp(
-      locale: const Locale('en'),
+    child: const MaterialApp(
+      locale: Locale('en'),
       localizationsDelegates: S.localizationsDelegates,
       supportedLocales: S.supportedLocales,
-      home: const ExperimentalFeaturesScreen(),
+      home: ExperimentalFeaturesScreen(),
     ),
   );
 }

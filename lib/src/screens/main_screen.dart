@@ -592,6 +592,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           onDestinationSelected: _handleDestinationSelected,
           destinations: destinations,
           liquidGlass: useLiquidGlass,
+          fallbackGlassTransparency: ref.watch(
+            fallbackGlassTransparencyProvider,
+          ),
           showUpdateBadge: showUpdateBadge,
           onLayoutExtentChanged: (extent) {
             if (_liquidDockExtent.value != extent) {
