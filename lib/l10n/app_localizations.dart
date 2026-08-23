@@ -810,6 +810,12 @@ abstract class S {
   /// **'Disabled'**
   String get floatingLyricDisabled;
 
+  /// No description provided for @floatingLyricUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'System floating lyrics are not available on this device'**
+  String get floatingLyricUnavailable;
+
   /// No description provided for @floatingLyricTouch.
   ///
   /// In en, this message translates to:

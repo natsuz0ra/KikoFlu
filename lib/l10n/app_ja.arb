@@ -138,6 +138,7 @@
   "desktopFloatingLyric": "デスクトップフローティング字幕",
   "floatingLyricEnabled": "有効 - 字幕がデスクトップに表示されます",
   "floatingLyricDisabled": "無効",
+  "floatingLyricUnavailable": "この端末ではシステムのフローティング字幕を利用できません",
   "floatingLyricTouch": "フローティング字幕ロック",
   "floatingLyricTouchEnabled": "ロック解除 - ドラッグ可能、長押しでロック",
   "floatingLyricTouchDisabled": "ロック中 - 長押しでロック解除",

@@ -260,7 +260,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           value: isEnabled,
           onChanged: (value) async {
             try {
-              await ref.read(floatingLyricEnabledProvider.notifier).toggle();
+              final success = await ref
+                  .read(floatingLyricEnabledProvider.notifier)
+                  .toggle();
+              if (!success && context.mounted) {
+                SnackBarUtil.showWarning(
+                  context,
+                  l10n.floatingLyricUnavailable,
+                );
+              }
             } catch (e) {
               if (!context.mounted) return;
               SnackBarUtil.showError(

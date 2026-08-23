@@ -372,6 +372,9 @@ class SZh extends S {
   String get floatingLyricDisabled => '未启用';
 
   @override
+  String get floatingLyricUnavailable => '当前设备不支持系统悬浮字幕';
+
+  @override
   String get floatingLyricTouch => '悬浮字幕锁定';
 
   @override
@@ -3950,6 +3953,9 @@ class SZhHant extends SZh {
 
   @override
   String get floatingLyricDisabled => '未啟用';
+
+  @override
+  String get floatingLyricUnavailable => '目前裝置不支援系統懸浮字幕';
 
   @override
   String get floatingLyricTouch => '懸浮字幕鎖定';

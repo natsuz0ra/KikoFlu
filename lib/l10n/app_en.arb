@@ -158,6 +158,7 @@
   "desktopFloatingLyric": "Desktop Floating Lyrics",
   "floatingLyricEnabled": "Enabled - Lyrics will display on desktop",
   "floatingLyricDisabled": "Disabled",
+  "floatingLyricUnavailable": "System floating lyrics are not available on this device",
   "floatingLyricTouch": "Floating Lyric Lock",
   "floatingLyricTouchEnabled": "Unlocked - Drag floating lyrics, long press to lock",
   "floatingLyricTouchDisabled": "Locked - Long press floating lyrics to unlock",

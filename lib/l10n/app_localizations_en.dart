@@ -377,6 +377,10 @@ class SEn extends S {
   String get floatingLyricDisabled => 'Disabled';
 
   @override
+  String get floatingLyricUnavailable =>
+      'System floating lyrics are not available on this device';
+
+  @override
   String get floatingLyricTouch => 'Floating Lyric Lock';
 
   @override

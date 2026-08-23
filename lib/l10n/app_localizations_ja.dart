@@ -373,6 +373,9 @@ class SJa extends S {
   String get floatingLyricDisabled => '無効';
 
   @override
+  String get floatingLyricUnavailable => 'この端末ではシステムのフローティング字幕を利用できません';
+
+  @override
   String get floatingLyricTouch => 'フローティング字幕ロック';
 
   @override

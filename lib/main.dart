@@ -37,6 +37,7 @@ import 'l10n/app_localizations.dart';
 import 'src/providers/audio_provider.dart';
 import 'src/providers/auth_provider.dart';
 import 'src/providers/locale_provider.dart';
+import 'src/providers/ohos_system_lyric_provider.dart';
 import 'src/providers/theme_provider.dart';
 import 'src/providers/update_provider.dart';
 import 'src/utils/desktop_window_options.dart';
@@ -451,6 +452,7 @@ class _KikoeruAppState extends ConsumerState<KikoeruApp>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(ohosSystemLyricSyncProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
     if (Platform.isMacOS) {
       ref.listen<AppThemeMode>(

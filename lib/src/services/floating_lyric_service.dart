@@ -4,7 +4,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 
+import '../platform/runtime_platform.dart';
 import 'log_service.dart';
+import 'ohos_system_lyric_service.dart';
 
 final _log = LogService.instance;
 
@@ -87,7 +89,8 @@ class FloatingLyricService {
       Platform.isAndroid ||
       Platform.isWindows ||
       Platform.isMacOS ||
-      Platform.isIOS;
+      Platform.isIOS ||
+      runtimePlatform.isOhos;
 
   /// 显示悬浮窗
   /// [text] 要显示的文本内容
@@ -96,6 +99,10 @@ class FloatingLyricService {
     if (!isSupported) {
       _log.captureOutput('[FloatingLyric] 当前平台不支持悬浮窗');
       return false;
+    }
+
+    if (runtimePlatform.isOhos) {
+      return OhosSystemLyricService.instance.setDesktopLyricVisible(true);
     }
 
     if (Platform.isWindows) {
@@ -163,6 +170,10 @@ class FloatingLyricService {
       return false;
     }
 
+    if (runtimePlatform.isOhos) {
+      return OhosSystemLyricService.instance.setDesktopLyricVisible(false);
+    }
+
     if (Platform.isWindows) {
       if (_windowId != null) {
         try {
@@ -193,6 +204,10 @@ class FloatingLyricService {
     if (!isSupported) {
       return false;
     }
+
+    // The global HarmonyOS synchronizer owns AVMetadata updates. The desktop
+    // lyric window reads the current line from that metadata directly.
+    if (runtimePlatform.isOhos) return true;
 
     // 去重检查，避免频繁调用 MethodChannel
     if (text == _lastText) {
@@ -235,6 +250,11 @@ class FloatingLyricService {
   /// 检查是否有悬浮窗权限
   Future<bool> hasPermission() async {
     if (Platform.isWindows || Platform.isMacOS || Platform.isIOS) return true;
+    if (runtimePlatform.isOhos) {
+      final capabilities =
+          await OhosSystemLyricService.instance.getCapabilities();
+      return capabilities.desktopLyric;
+    }
     if (!isSupported) {
       return false;
     }
@@ -251,6 +271,11 @@ class FloatingLyricService {
   /// 请求悬浮窗权限
   Future<bool> requestPermission() async {
     if (Platform.isWindows || Platform.isMacOS || Platform.isIOS) return true;
+    if (runtimePlatform.isOhos) {
+      final capabilities =
+          await OhosSystemLyricService.instance.getCapabilities();
+      return capabilities.desktopLyric;
+    }
     if (!isSupported) {
       return false;
     }
@@ -283,6 +308,9 @@ class FloatingLyricService {
     if (!isSupported) {
       return false;
     }
+
+    // HarmonyOS desktop lyrics are rendered and styled by the system.
+    if (runtimePlatform.isOhos) return true;
 
     final params = <String, dynamic>{};
     if (fontSize != null) params['fontSize'] = fontSize;

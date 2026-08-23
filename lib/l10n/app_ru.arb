@@ -138,6 +138,7 @@
   "desktopFloatingLyric": "Плавающие субтитры",
   "floatingLyricEnabled": "Включено — субтитры отображаются на рабочем столе",
   "floatingLyricDisabled": "Выключено",
+  "floatingLyricUnavailable": "Системные плавающие субтитры недоступны на этом устройстве",
   "floatingLyricTouch": "Блокировка плавающих субтитров",
   "floatingLyricTouchEnabled": "Разблокировано — можно перетаскивать, удерживайте для блокировки",
   "floatingLyricTouchDisabled": "Заблокировано — удерживайте субтитры для разблокировки",

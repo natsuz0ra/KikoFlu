@@ -6,8 +6,10 @@ import '../services/floating_lyric_service.dart';
 import '../services/audio_player_service.dart';
 import '../services/log_service.dart';
 import '../models/lyric.dart';
+import '../platform/runtime_platform.dart';
 import 'lyric_provider.dart';
 import 'floating_lyric_style_provider.dart';
+import 'settings_provider.dart';
 
 final _log = LogService.instance;
 
@@ -15,27 +17,28 @@ final _log = LogService.instance;
 /// 使用后台 Stream 监听机制自动更新，无需依赖 UI Provider
 final floatingLyricEnabledProvider =
     StateNotifierProvider<FloatingLyricEnabledNotifier, bool>((ref) {
-  return FloatingLyricEnabledNotifier(ref);
-});
+      return FloatingLyricEnabledNotifier(ref);
+    });
 
 /// 悬浮字幕触摸开关（仅 Android，默认允许触摸）
 final floatingLyricTouchEnabledProvider =
     StateNotifierProvider<FloatingLyricTouchEnabledNotifier, bool>((ref) {
-  return FloatingLyricTouchEnabledNotifier(ref);
-});
+      return FloatingLyricTouchEnabledNotifier(ref);
+    });
 
 /// 悬浮窗 FPS 显示开关（仅 iOS）
 final floatingLyricFPSEnabledProvider =
     StateNotifierProvider<FloatingLyricFPSEnabledNotifier, bool>((ref) {
-  return FloatingLyricFPSEnabledNotifier(ref);
-});
+      return FloatingLyricFPSEnabledNotifier(ref);
+    });
 
 /// 悬浮窗网速显示开关（仅 iOS）
 final floatingLyricNetworkSpeedEnabledProvider =
-    StateNotifierProvider<FloatingLyricNetworkSpeedEnabledNotifier, bool>(
-        (ref) {
-  return FloatingLyricNetworkSpeedEnabledNotifier(ref);
-});
+    StateNotifierProvider<FloatingLyricNetworkSpeedEnabledNotifier, bool>((
+      ref,
+    ) {
+      return FloatingLyricNetworkSpeedEnabledNotifier(ref);
+    });
 
 class FloatingLyricTouchEnabledNotifier extends StateNotifier<bool> {
   static const _key = 'floating_lyric_touch_enabled';
@@ -62,14 +65,15 @@ class FloatingLyricTouchEnabledNotifier extends StateNotifier<bool> {
     if (!Platform.isAndroid) return;
 
     _touchEnabledSubscription = FloatingLyricService
-        .instance.onTouchEnabledChanged
+        .instance
+        .onTouchEnabledChanged
         .listen((enabled) async {
-      if (state == enabled) return;
+          if (state == enabled) return;
 
-      state = enabled;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_key, enabled);
-    });
+          state = enabled;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool(_key, enabled);
+        });
   }
 
   Future<void> setEnabled(bool enabled, {bool applyToWindow = true}) async {
@@ -160,8 +164,9 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
   }
 
   void _listenToCloseEvent() {
-    _closeSubscription =
-        FloatingLyricService.instance.onClose.listen((_) async {
+    _closeSubscription = FloatingLyricService.instance.onClose.listen((
+      _,
+    ) async {
       if (state) {
         state = false;
         _stopBackgroundUpdate();
@@ -176,7 +181,7 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
     state = prefs.getBool(_key) ?? false;
 
     // 如果已启用，尝试显示悬浮窗
-    if (state) {
+    if (state && !ref.read(privacyModeSettingsProvider).enabled) {
       final shown = await _showFloatingLyric();
       if (!shown) {
         state = false;
@@ -185,34 +190,42 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
     }
   }
 
-  Future<void> toggle() async {
+  Future<bool> toggle() async {
     final newValue = !state;
 
     // 如果要启用悬浮窗，先检查权限
     if (newValue) {
-      final hasPermission = await FloatingLyricService.instance.hasPermission();
-      if (!hasPermission) {
-        final granted = await FloatingLyricService.instance.requestPermission();
-        if (!granted) {
-          _log.captureOutput('[FloatingLyric] 用户未授予悬浮窗权限');
-          return;
+      if (!ref.read(privacyModeSettingsProvider).enabled) {
+        final hasPermission = await FloatingLyricService.instance
+            .hasPermission();
+        if (!hasPermission) {
+          final granted = await FloatingLyricService.instance
+              .requestPermission();
+          if (!granted) {
+            _log.captureOutput('[FloatingLyric] 用户未授予悬浮窗权限');
+            return false;
+          }
         }
-      }
 
-      // 显示悬浮窗
-      final shown = await _showFloatingLyric();
-      if (!shown) return;
+        // 显示悬浮窗
+        final shown = await _showFloatingLyric();
+        if (!shown) return false;
+      }
     } else {
       // 停止后台更新
       _stopBackgroundUpdate();
       // 隐藏悬浮窗
-      await FloatingLyricService.instance.hide();
+      final privacyEnabled = ref.read(privacyModeSettingsProvider).enabled;
+      final hidden =
+          privacyEnabled || await FloatingLyricService.instance.hide();
+      if (runtimePlatform.isOhos && !hidden) return false;
     }
 
     // 保存状态
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_key, newValue);
     state = newValue;
+    return true;
   }
 
   Future<bool> _showFloatingLyric() async {
@@ -236,6 +249,10 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
       _log.captureOutput('[FloatingLyric] 悬浮窗启动失败');
       return false;
     }
+
+    // HarmonyOS uses the system desktop lyric surface and the global metadata
+    // synchronizer, so it does not need the app-managed position listeners.
+    if (runtimePlatform.isOhos) return true;
 
     // Windows 平台需要给予窗口一点初始化时间，避免立即发送消息导致 CHANNEL_UNREGISTERED
     if (Platform.isWindows || Platform.isLinux) {
@@ -275,16 +292,19 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
     });
 
     // 监听播放状态变化
-    _playingSubscription =
-        AudioPlayerService.instance.playerStateStream.listen((_) {
-      _updateLyricInBackground();
-    });
+    _playingSubscription = AudioPlayerService.instance.playerStateStream.listen(
+      (_) {
+        _updateLyricInBackground();
+      },
+    );
 
     // 监听音轨变化
-    _trackSubscription =
-        AudioPlayerService.instance.currentTrackStream.listen((track) {
+    _trackSubscription = AudioPlayerService.instance.currentTrackStream.listen((
+      track,
+    ) {
       _log.captureOutput(
-          '[FloatingLyric] 收到音轨事件: id=${track?.id}, title=${track?.title}, lastId=$_lastTrackId');
+        '[FloatingLyric] 收到音轨事件: id=${track?.id}, title=${track?.title}, lastId=$_lastTrackId',
+      );
       if (track?.id != _lastTrackId) {
         _lastTrackId = track?.id;
         _log.captureOutput('[FloatingLyric] ✓ 音轨切换确认: ${track?.title}');
@@ -296,10 +316,9 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
           final fileListState = ref.read(fileListControllerProvider);
           if (fileListState.matches(track)) {
             _log.captureOutput('[FloatingLyric] 主动触发字幕加载');
-            ref.read(lyricControllerProvider.notifier).loadLyricForTrack(
-                  track,
-                  fileListState.files,
-                );
+            ref
+                .read(lyricControllerProvider.notifier)
+                .loadLyricForTrack(track, fileListState.files);
           } else {
             _log.captureOutput(
               '[FloatingLyric] 当前字幕文件树不匹配，等待自动恢复',
@@ -312,21 +331,21 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
     });
 
     // 监听字幕状态变化 - 当字幕加载完成或变化时更新
-    _lyricStateSubscription = ref.listen<LyricState>(
-      lyricControllerProvider,
-      (previous, next) {
-        // 当字幕加载完成（isLoading 从 true 变为 false）时更新
-        if (previous?.isLoading == true && next.isLoading == false) {
-          _log.captureOutput('[FloatingLyric] 字幕加载完成，更新悬浮窗');
-          _updateLyricInBackground();
-        }
-        // 或者字幕内容发生变化时也更新
-        else if (previous?.lyrics != next.lyrics && !next.isLoading) {
-          _log.captureOutput('[FloatingLyric] 字幕内容变化，更新悬浮窗');
-          _updateLyricInBackground();
-        }
-      },
-    );
+    _lyricStateSubscription = ref.listen<LyricState>(lyricControllerProvider, (
+      previous,
+      next,
+    ) {
+      // 当字幕加载完成（isLoading 从 true 变为 false）时更新
+      if (previous?.isLoading == true && next.isLoading == false) {
+        _log.captureOutput('[FloatingLyric] 字幕加载完成，更新悬浮窗');
+        _updateLyricInBackground();
+      }
+      // 或者字幕内容发生变化时也更新
+      else if (previous?.lyrics != next.lyrics && !next.isLoading) {
+        _log.captureOutput('[FloatingLyric] 字幕内容变化，更新悬浮窗');
+        _updateLyricInBackground();
+      }
+    });
   }
 
   /// 停止后台更新监听
@@ -353,8 +372,10 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
     } else if (lyricState.lyrics.isNotEmpty) {
       // 使用显示用歌词（翻译后 > 原文）
       final displayLyrics = lyricState.displayLyrics;
-      final currentLyric =
-          LyricParser.getCurrentLyric(displayLyrics, currentPosition);
+      final currentLyric = LyricParser.getCurrentLyric(
+        displayLyrics,
+        currentPosition,
+      );
 
       if (currentLyric != null && currentLyric.trim().isNotEmpty) {
         displayText = currentLyric;

@@ -51,8 +51,8 @@ dependencies:
   media_kit_libs_android_audio: ^1.1.5
   audio_service:
     git:
-      url: https://gitcode.com/CPF-Flutter/fluttertpc_audio_service.git
-      ref: ac22654a6c8edc30b3d05fac4954de4b19ea85f1
+      url: https://github.com/natsuz0ra/fluttertpc_audio_service.git
+      ref: 3cb9c3361f96dcbce5208c11bb1bfe4a6bb2ee15
       path: audio_service
   smtc_windows: ^0.1.3
   flutter_pdfview:

@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -9,6 +8,7 @@ import '../../providers/lyric_provider.dart';
 import '../../providers/player_buttons_provider.dart';
 import '../../platform/runtime_platform.dart';
 import '../../utils/string_utils.dart';
+import '../../utils/snackbar_util.dart';
 import '../responsive_dialog.dart';
 import '../subtitle_adjustment_dialog.dart';
 import '../volume_control.dart';
@@ -349,13 +349,13 @@ class _PlayerControlsWidgetState extends ConsumerState<PlayerControlsWidget> {
                 alignment: Alignment.centerRight,
                 child: Switch(
                   value: isEnabled,
-                  onChanged: (value) {
-                    ref.read(floatingLyricEnabledProvider.notifier).toggle();
+                  onChanged: (value) async {
+                    await _toggleFloatingLyric(context, ref);
                   },
                 ),
               ),
-              onTap: () {
-                ref.read(floatingLyricEnabledProvider.notifier).toggle();
+              onTap: () async {
+                await _toggleFloatingLyric(context, ref);
               },
             );
           },
@@ -554,8 +554,8 @@ class _PlayerControlsWidgetState extends ConsumerState<PlayerControlsWidget> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              onPressed: () {
-                ref.read(floatingLyricEnabledProvider.notifier).toggle();
+              onPressed: () async {
+                await _toggleFloatingLyric(context, ref);
               },
               icon: Icon(
                 isEnabled
@@ -568,6 +568,20 @@ class _PlayerControlsWidgetState extends ConsumerState<PlayerControlsWidget> {
             if (!isLandscape) const SizedBox(height: 14),
           ],
         );
+    }
+  }
+
+  Future<void> _toggleFloatingLyric(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final success =
+        await ref.read(floatingLyricEnabledProvider.notifier).toggle();
+    if (!success && context.mounted) {
+      SnackBarUtil.showWarning(
+        context,
+        S.of(context).floatingLyricUnavailable,
+      );
     }
   }
 

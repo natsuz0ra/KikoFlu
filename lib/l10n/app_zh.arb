@@ -138,6 +138,7 @@
   "desktopFloatingLyric": "桌面悬浮字幕",
   "floatingLyricEnabled": "已启用 - 字幕将显示在桌面上",
   "floatingLyricDisabled": "未启用",
+  "floatingLyricUnavailable": "当前设备不支持系统悬浮字幕",
   "floatingLyricTouch": "悬浮字幕锁定",
   "floatingLyricTouchEnabled": "已解锁 - 可拖动悬浮字幕，长按可锁定",
   "floatingLyricTouchDisabled": "已锁定 - 长按悬浮字幕解锁",
