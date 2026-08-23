@@ -2,7 +2,7 @@
   "app": {
     "bundleName": "com.meteor.kikoeruflutter.harmony",
     "vendor": "meteor",
-    "versionCode": 2,
+    "versionCode": 3,
     "versionName": "3.8.0",
     "icon": "$media:app_icon",
     "label": "$string:app_name"
