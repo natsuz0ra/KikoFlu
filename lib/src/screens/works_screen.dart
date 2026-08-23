@@ -9,6 +9,7 @@ import '../widgets/virtualized_sliver_collection.dart';
 import '../utils/snackbar_util.dart';
 import '../widgets/floating_feed_toolbar.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/download_fab.dart';
 import '../models/sort_options.dart';
@@ -17,7 +18,9 @@ import '../utils/l10n_extensions.dart';
 import '../utils/system_ui_style.dart';
 
 class WorksScreen extends ConsumerStatefulWidget {
-  const WorksScreen({super.key});
+  const WorksScreen({super.key, required this.reselectController});
+
+  final NavigationTabReselectController reselectController;
 
   @override
   ConsumerState<WorksScreen> createState() => _WorksScreenState();
@@ -136,6 +139,17 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
       final clamped = targetOffset.clamp(0.0, safeMax).toDouble();
       _scrollController.jumpTo(clamped);
     });
+  }
+
+  void _scrollToTopAndRefresh() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    ref.read(worksProvider.notifier).refresh();
   }
 
   void _handleSwipe(DragEndDetails details) {
@@ -262,7 +276,10 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
           ],
         ),
       ),
-    ).scrollToTopOnStatusBar(_scrollController);
+    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
+          controller: widget.reselectController,
+          onReselect: _scrollToTopAndRefresh,
+        );
   }
 
   List<FloatingFeedModeAction> _buildModeActions(

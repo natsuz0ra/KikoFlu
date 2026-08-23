@@ -25,12 +25,15 @@ import '../models/sort_options.dart';
 import '../utils/subtitle_filter.dart';
 import '../utils/system_ui_style.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/navigation_tab_reselect.dart';
 export '../providers/my_reviews_provider.dart' show MyReviewLayoutType;
 
 import '../../l10n/app_localizations.dart';
 
 class MyScreen extends ConsumerStatefulWidget {
-  const MyScreen({super.key});
+  const MyScreen({super.key, required this.reselectController});
+
+  final NavigationTabReselectController reselectController;
 
   @override
   ConsumerState<MyScreen> createState() => _MyScreenState();
@@ -154,6 +157,17 @@ class _MyScreenState extends ConsumerState<MyScreen>
     _tabSwitcherVisible.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToTopAndRefresh() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    ref.read(myReviewsProvider.notifier).refresh();
   }
 
   void _navigateToDownloads() {
@@ -399,7 +413,10 @@ class _MyScreenState extends ConsumerState<MyScreen>
           ),
         ),
       ),
-    ).scrollToTopOnStatusBar(_scrollController);
+    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
+          controller: widget.reselectController,
+          onReselect: _scrollToTopAndRefresh,
+        );
   }
 
   Widget _buildOnlineBookmarksTab({
