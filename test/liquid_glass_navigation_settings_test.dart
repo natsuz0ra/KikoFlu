@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kikoeru_flutter/src/platform/runtime_platform.dart';
 import 'package:kikoeru_flutter/src/providers/settings_provider.dart';
 import 'package:real_liquid_glass/real_liquid_glass.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,6 +62,36 @@ void main() {
       LiquidGlassNavigationNotifier.defaultForCapabilities(supported),
       isFalse,
     );
+  });
+
+  test('first run enables both HarmonyOS immersive bars', () async {
+    final ohos = RuntimePlatform.fromOperatingSystem('ohos');
+    final navigation = LiquidGlassNavigationNotifier(platform: ohos);
+    final topBar = LiquidGlassTopBarNotifier(platform: ohos);
+    addTearDown(navigation.dispose);
+    addTearDown(topBar.dispose);
+
+    await _pumpAsyncPreferenceLoad();
+
+    expect(navigation.state, isTrue);
+    expect(topBar.state, isTrue);
+  });
+
+  test('HarmonyOS preserves explicitly saved immersive bar choices', () async {
+    SharedPreferences.setMockInitialValues({
+      LiquidGlassNavigationNotifier.preferenceKey: false,
+      LiquidGlassTopBarNotifier.preferenceKey: true,
+    });
+    final ohos = RuntimePlatform.fromOperatingSystem('ohos');
+    final navigation = LiquidGlassNavigationNotifier(platform: ohos);
+    final topBar = LiquidGlassTopBarNotifier(platform: ohos);
+    addTearDown(navigation.dispose);
+    addTearDown(topBar.dispose);
+
+    await _pumpAsyncPreferenceLoad();
+
+    expect(navigation.state, isFalse);
+    expect(topBar.state, isTrue);
   });
 
   test('saved opt-in remains enabled on a fallback-only Apple OS', () async {

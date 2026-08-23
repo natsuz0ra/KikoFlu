@@ -16,20 +16,33 @@ final settingsCacheRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 final subtitleLibraryRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
 /// Controls the optional liquid-glass treatment for the bottom navigation and
-/// the mini player. Only Apple OS versions with native Liquid Glass support
-/// enable it by default; fallback remains available as an explicit choice.
+/// the mini player. HarmonyOS enables its native shell by default; Apple
+/// platforms still require native Liquid Glass capability support.
 class LiquidGlassNavigationNotifier extends StateNotifier<bool> {
   static const String preferenceKey = 'liquid_glass_navigation_enabled';
 
-  LiquidGlassNavigationNotifier() : super(defaultValue) {
+  LiquidGlassNavigationNotifier({RuntimePlatform? platform})
+    : _platform = platform ?? runtimePlatform,
+      super(
+        defaultForCapabilities(
+          LiquidGlass.cachedCapabilities,
+          platform: platform,
+        ),
+      ) {
     _loadPreference();
   }
 
-  static bool defaultForCapabilities(LiquidGlassCapabilities? capabilities) {
+  final RuntimePlatform _platform;
+
+  static bool defaultForCapabilities(
+    LiquidGlassCapabilities? capabilities, {
+    RuntimePlatform? platform,
+  }) {
+    final resolvedPlatform = platform ?? runtimePlatform;
     final isApplePlatform =
         defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
-    if (runtimePlatform.isOhos) return true;
+    if (resolvedPlatform.isOhos) return true;
     return isApplePlatform && capabilities?.nativeGlass == true;
   }
 
@@ -51,10 +64,13 @@ class LiquidGlassNavigationNotifier extends StateNotifier<bool> {
       final capabilities =
           LiquidGlass.cachedCapabilities ?? await LiquidGlass.capabilities();
       if (!mounted || _changedLocally) return;
-      state = defaultForCapabilities(capabilities);
+      state = defaultForCapabilities(capabilities, platform: _platform);
     } catch (_) {
       if (!mounted || _changedLocally) return;
-      state = defaultValue;
+      state = defaultForCapabilities(
+        LiquidGlass.cachedCapabilities,
+        platform: _platform,
+      );
     }
   }
 
@@ -72,7 +88,7 @@ class LiquidGlassNavigationNotifier extends StateNotifier<bool> {
   Future<void> resetToDefault() async {
     final capabilities =
         LiquidGlass.cachedCapabilities ?? await LiquidGlass.capabilities();
-    await setEnabled(defaultForCapabilities(capabilities));
+    await setEnabled(defaultForCapabilities(capabilities, platform: _platform));
   }
 }
 
@@ -85,11 +101,18 @@ final liquidGlassNavigationProvider =
 class LiquidGlassTopBarNotifier extends StateNotifier<bool> {
   static const String preferenceKey = 'liquid_glass_top_bar_enabled';
 
-  LiquidGlassTopBarNotifier()
-    : super(LiquidGlassNavigationNotifier.defaultValue) {
+  LiquidGlassTopBarNotifier({RuntimePlatform? platform})
+    : _platform = platform ?? runtimePlatform,
+      super(
+        LiquidGlassNavigationNotifier.defaultForCapabilities(
+          LiquidGlass.cachedCapabilities,
+          platform: platform,
+        ),
+      ) {
     _loadPreference();
   }
 
+  final RuntimePlatform _platform;
   bool _changedLocally = false;
 
   Future<void> _loadPreference() async {
@@ -107,10 +130,14 @@ class LiquidGlassTopBarNotifier extends StateNotifier<bool> {
       if (!mounted || _changedLocally) return;
       state = LiquidGlassNavigationNotifier.defaultForCapabilities(
         capabilities,
+        platform: _platform,
       );
     } catch (_) {
       if (!mounted || _changedLocally) return;
-      state = LiquidGlassNavigationNotifier.defaultValue;
+      state = LiquidGlassNavigationNotifier.defaultForCapabilities(
+        LiquidGlass.cachedCapabilities,
+        platform: _platform,
+      );
     }
   }
 
@@ -131,8 +158,8 @@ final liquidGlassTopBarProvider =
       return LiquidGlassTopBarNotifier();
     });
 
-/// 保留旧配置的存储兼容层，实际设置页不再暴露该选项。
-/// 非鸿蒙平台的 Flutter fallback 仍可由测试和旧用户偏好读取。
+/// Controls the transparency of Flutter-drawn glass on non-Apple platforms.
+/// Native iOS and macOS materials continue to follow the system appearance.
 class FallbackGlassTransparencyNotifier extends StateNotifier<double> {
   static const String preferenceKey = 'fallback_glass_transparency';
   static const double defaultValue = 0.4;
@@ -150,7 +177,10 @@ class FallbackGlassTransparencyNotifier extends StateNotifier<double> {
       final prefs = await SharedPreferences.getInstance();
       if (!mounted || _changedLocally) return;
       state = normalize(prefs.getDouble(preferenceKey) ?? defaultValue);
-    } catch (_) {}
+    } catch (_) {
+      if (!mounted || _changedLocally) return;
+      state = defaultValue;
+    }
   }
 
   void previewTransparency(double value) {
@@ -163,7 +193,9 @@ class FallbackGlassTransparencyNotifier extends StateNotifier<double> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble(preferenceKey, state);
-    } catch (_) {}
+    } catch (_) {
+      // Keep the in-memory value when persistence is unavailable.
+    }
   }
 
   Future<void> resetToDefault() => setTransparency(defaultValue);

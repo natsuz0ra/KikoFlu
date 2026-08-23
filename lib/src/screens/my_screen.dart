@@ -275,9 +275,6 @@ class _MyScreenState extends ConsumerState<MyScreen>
         MyReviewLayoutType.list => 'view_agenda',
       };
 
-  String _colorHex(Color color) =>
-      '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
-
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
 
@@ -430,7 +427,6 @@ class _MyScreenState extends ConsumerState<MyScreen>
     final secondaryVisible = tabs[currentTabIndex].hasSecondaryToolbar;
     final myState = ref.watch(myReviewsProvider);
     if (requestNativeTopGlass) {
-      final colors = Theme.of(context).colorScheme;
       final subtitleActive = SubtitleFilterMode.fromValue(
         myState.subtitleFilter,
       ).isActive;
@@ -465,13 +461,9 @@ class _MyScreenState extends ConsumerState<MyScreen>
         secondaryToolEnabled: const [true, true, true],
         secondaryVisible: secondaryVisible,
         collapsed: !_tabSwitcherVisible.value,
-        selectedColor: _colorHex(colors.primary),
-        selectedContainerColor: _colorHex(
-          colors.primary.withValues(alpha: 0.14),
+        colors: harmonyShellColorsFromColorScheme(
+          Theme.of(context).colorScheme,
         ),
-        unselectedColor: _colorHex(colors.onSurfaceVariant),
-        topMaskStrongColor: _colorHex(colors.surface.withValues(alpha: 0.82)),
-        topMaskWeakColor: _colorHex(colors.surface.withValues(alpha: 0.12)),
       );
     }
 

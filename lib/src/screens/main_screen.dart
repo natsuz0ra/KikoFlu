@@ -38,9 +38,7 @@ class _NativeShellRequest {
     required this.showUpdateBadge,
     required this.selectedIndex,
     required this.labels,
-    required this.badgeColor,
-    required this.selectedColor,
-    required this.unselectedColor,
+    required this.colors,
   });
 
   final bool bottomEnabled;
@@ -50,9 +48,7 @@ class _NativeShellRequest {
   final bool showUpdateBadge;
   final int selectedIndex;
   final List<String> labels;
-  final Color badgeColor;
-  final Color selectedColor;
-  final Color unselectedColor;
+  final HarmonyShellColors colors;
 
   String get signature => <Object?>[
     bottomEnabled,
@@ -62,9 +58,7 @@ class _NativeShellRequest {
     showUpdateBadge,
     selectedIndex,
     ...labels,
-    badgeColor.toARGB32(),
-    selectedColor.toARGB32(),
-    unselectedColor.toARGB32(),
+    colors.signature,
   ].join('|');
 }
 
@@ -165,18 +159,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     });
   }
 
-  String _colorHex(Color color) =>
-      '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
-
   void _scheduleNativeShellSync({
     required bool bottomEnabled,
     required bool topEnabled,
     required HarmonyTopBarPage? topPage,
     required bool showUpdateBadge,
     required List<String> labels,
-    required Color badgeColor,
-    required Color selectedColor,
-    required Color unselectedColor,
+    required HarmonyShellColors colors,
   }) {
     if (!runtimePlatform.usesNativeHarmonyGlass) return;
     final request = _NativeShellRequest(
@@ -187,9 +176,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       showUpdateBadge: showUpdateBadge,
       selectedIndex: _currentIndex,
       labels: List.unmodifiable(labels),
-      badgeColor: badgeColor,
-      selectedColor: selectedColor,
-      unselectedColor: unselectedColor,
+      colors: colors,
     );
     if (_pendingNativeShellRequest?.signature == request.signature) return;
     if (!_nativeSyncInFlight &&
@@ -237,9 +224,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         final dataReady = await HarmonyChannel.setNativeBottomBarData(
           labels: request.labels,
           showUpdateBadge: request.showUpdateBadge,
-          badgeColor: _colorHex(request.badgeColor),
-          selectedColor: _colorHex(request.selectedColor),
-          unselectedColor: _colorHex(request.unselectedColor),
+          badgeColor: request.colors.badge,
+          selectedColor: request.colors.selected,
+          unselectedColor: request.colors.unselected,
         );
         final indexReady = await HarmonyChannel.setNativeTabIndex(
           request.selectedIndex,
@@ -360,9 +347,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       topPage: topPage,
       showUpdateBadge: showUpdateBadge,
       labels: destinations.map((destination) => destination.label).toList(),
-      badgeColor: colorScheme.error,
-      selectedColor: colorScheme.primary,
-      unselectedColor: colorScheme.onSurfaceVariant,
+      colors: harmonyShellColorsFromColorScheme(colorScheme),
     );
     final useNativeOhosBottom =
         keepsNativeShell &&

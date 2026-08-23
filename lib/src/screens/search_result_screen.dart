@@ -150,9 +150,6 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
     SearchLayoutType.list => 'view_agenda',
   };
 
-  String _colorHex(Color color) =>
-      '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
-
   Future<void> _showSortDialog(BuildContext context) async {
     if (_sortDialogOpen) return;
     final state = ref.read(searchResultProvider);
@@ -231,7 +228,6 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
         requestNativeTopGlass &&
         HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.searchResult);
     if (requestNativeTopGlass) {
-      final colors = Theme.of(context).colorScheme;
       final subtitleActive = SubtitleFilterMode.fromValue(
         searchState.subtitleFilter,
       ).isActive;
@@ -251,13 +247,9 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
         toolActions: const ['layout', 'subtitle', 'sort'],
         toolSelected: [false, subtitleActive, false],
         toolEnabled: const [true, true, true],
-        selectedColor: _colorHex(colors.primary),
-        selectedContainerColor: _colorHex(
-          colors.primary.withValues(alpha: 0.14),
+        colors: harmonyShellColorsFromColorScheme(
+          Theme.of(context).colorScheme,
         ),
-        unselectedColor: _colorHex(colors.onSurfaceVariant),
-        topMaskStrongColor: _colorHex(colors.surface.withValues(alpha: 0.82)),
-        topMaskWeakColor: _colorHex(colors.surface.withValues(alpha: 0.12)),
       );
     }
 

@@ -118,9 +118,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     });
   }
 
-  String _colorHex(Color color) =>
-      '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
-
   // 加载建议数据
   Future<void> _loadSuggestions() async {
     if (_currentSearchType == SearchType.keyword ||
@@ -342,7 +339,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         requestNativeTopGlass &&
         HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.search);
     if (requestNativeTopGlass) {
-      final colors = theme.colorScheme;
       HarmonyChannel.stageNativeTopBarData(
         page: HarmonyTopBarPage.search,
         title: S.of(context).search,
@@ -356,13 +352,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         toolActions: const ['toggle_filter'],
         toolSelected: [_showAdvancedFilters],
         toolEnabled: const [true],
-        selectedColor: _colorHex(colors.primary),
-        selectedContainerColor: _colorHex(
-          colors.primary.withValues(alpha: 0.14),
-        ),
-        unselectedColor: _colorHex(colors.onSurfaceVariant),
-        topMaskStrongColor: _colorHex(colors.surface.withValues(alpha: 0.82)),
-        topMaskWeakColor: _colorHex(colors.surface.withValues(alpha: 0.12)),
+        colors: harmonyShellColorsFromColorScheme(theme.colorScheme),
       );
     }
     final pageBody = isLandscape

@@ -199,9 +199,6 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     LayoutType.list => 'view_agenda',
   };
 
-  String _colorHex(Color color) =>
-      '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
-
   void _scrollToTopAndRefresh() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -277,7 +274,6 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
         requestNativeTopGlass &&
         HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.works);
     if (requestNativeTopGlass) {
-      final colors = Theme.of(context).colorScheme;
       HarmonyChannel.stageNativeTopBarData(
         page: HarmonyTopBarPage.works,
         modeLabels: [
@@ -302,13 +298,9 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
           false,
         ],
         toolEnabled: [true, true, !isRecommendMode],
-        selectedColor: _colorHex(colors.primary),
-        selectedContainerColor: _colorHex(
-          colors.primary.withValues(alpha: 0.14),
+        colors: harmonyShellColorsFromColorScheme(
+          Theme.of(context).colorScheme,
         ),
-        unselectedColor: _colorHex(colors.onSurfaceVariant),
-        topMaskStrongColor: _colorHex(colors.surface.withValues(alpha: 0.82)),
-        topMaskWeakColor: _colorHex(colors.surface.withValues(alpha: 0.12)),
       );
     }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Color, ColorScheme;
 import 'package:flutter/services.dart';
 
 import 'runtime_platform.dart';
@@ -18,6 +19,38 @@ class HarmonyShellCapabilities {
 }
 
 enum HarmonyTopBarPage { works, search, searchResult, my }
+
+typedef HarmonyShellColors = ({
+  String badge,
+  String selected,
+  String selectedContainer,
+  String unselected,
+  String topMaskStrong,
+  String topMaskWeak,
+});
+
+HarmonyShellColors harmonyShellColorsFromColorScheme(ColorScheme colors) => (
+  badge: _argbHex(colors.error),
+  selected: _argbHex(colors.primary),
+  selectedContainer: _argbHex(colors.primary.withValues(alpha: 0.14)),
+  unselected: _argbHex(colors.onSurfaceVariant),
+  topMaskStrong: _argbHex(colors.surface.withValues(alpha: 0.82)),
+  topMaskWeak: _argbHex(colors.surface.withValues(alpha: 0.12)),
+);
+
+extension HarmonyShellColorsSignature on HarmonyShellColors {
+  String get signature => <String>[
+    badge,
+    selected,
+    selectedContainer,
+    unselected,
+    topMaskStrong,
+    topMaskWeak,
+  ].join('|');
+}
+
+String _argbHex(Color color) =>
+    '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
 
 @immutable
 class HarmonyNativeTopAction {
@@ -52,11 +85,7 @@ class _HarmonyTopBarData {
     required this.secondaryToolEnabled,
     required this.secondaryVisible,
     required this.collapsed,
-    required this.selectedColor,
-    required this.selectedContainerColor,
-    required this.unselectedColor,
-    required this.topMaskStrongColor,
-    required this.topMaskWeakColor,
+    required this.colors,
   });
 
   final HarmonyTopBarPage page;
@@ -81,11 +110,7 @@ class _HarmonyTopBarData {
   final List<bool> secondaryToolEnabled;
   final bool secondaryVisible;
   final bool collapsed;
-  final String selectedColor;
-  final String selectedContainerColor;
-  final String unselectedColor;
-  final String topMaskStrongColor;
-  final String topMaskWeakColor;
+  final HarmonyShellColors colors;
 
   Map<String, Object?> toArguments() => <String, Object?>{
     'topBarPage': page.name,
@@ -110,11 +135,11 @@ class _HarmonyTopBarData {
     'secondaryToolEnabled': secondaryToolEnabled,
     'secondaryVisible': secondaryVisible,
     'topCollapsed': collapsed,
-    'selectedColor': selectedColor,
-    'selectedContainerColor': selectedContainerColor,
-    'unselectedColor': unselectedColor,
-    'topMaskStrongColor': topMaskStrongColor,
-    'topMaskWeakColor': topMaskWeakColor,
+    'selectedColor': colors.selected,
+    'selectedContainerColor': colors.selectedContainer,
+    'unselectedColor': colors.unselected,
+    'topMaskStrongColor': colors.topMaskStrong,
+    'topMaskWeakColor': colors.topMaskWeak,
   };
 
   @override
@@ -142,11 +167,7 @@ class _HarmonyTopBarData {
         listEquals(other.secondaryToolEnabled, secondaryToolEnabled) &&
         other.secondaryVisible == secondaryVisible &&
         other.collapsed == collapsed &&
-        other.selectedColor == selectedColor &&
-        other.selectedContainerColor == selectedContainerColor &&
-        other.unselectedColor == unselectedColor &&
-        other.topMaskStrongColor == topMaskStrongColor &&
-        other.topMaskWeakColor == topMaskWeakColor;
+        other.colors == colors;
   }
 
   @override
@@ -173,11 +194,7 @@ class _HarmonyTopBarData {
     Object.hashAll(secondaryToolEnabled),
     secondaryVisible,
     collapsed,
-    selectedColor,
-    selectedContainerColor,
-    unselectedColor,
-    topMaskStrongColor,
-    topMaskWeakColor,
+    colors,
   ]);
 }
 
@@ -329,11 +346,7 @@ abstract final class HarmonyChannel {
     List<bool> secondaryToolEnabled = const [],
     bool secondaryVisible = false,
     bool collapsed = false,
-    required String selectedColor,
-    required String selectedContainerColor,
-    required String unselectedColor,
-    required String topMaskStrongColor,
-    required String topMaskWeakColor,
+    required HarmonyShellColors colors,
   }) {
     assert(modeLabels.length == modeIcons.length);
     assert(modeLabels.length == modeActions.length);
@@ -368,11 +381,7 @@ abstract final class HarmonyChannel {
       secondaryToolEnabled: List.unmodifiable(secondaryToolEnabled),
       secondaryVisible: secondaryVisible,
       collapsed: collapsed,
-      selectedColor: selectedColor,
-      selectedContainerColor: selectedContainerColor,
-      unselectedColor: unselectedColor,
-      topMaskStrongColor: topMaskStrongColor,
-      topMaskWeakColor: topMaskWeakColor,
+      colors: colors,
     );
     if (_topBarData[page] == data) return;
     _topBarData[page] = data;
