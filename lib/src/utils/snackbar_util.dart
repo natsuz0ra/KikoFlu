@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/liquid_glass_layout.dart';
+
 /// SnackBar 工具类，提供统一的提示风格
 class SnackBarUtil {
   SnackBarUtil._();
@@ -16,7 +18,13 @@ class SnackBarUtil {
       if (message == null || message.isEmpty) {
         final messenger =
             fallbackMessenger ?? ScaffoldMessenger.maybeOf(context);
-        messenger?.showSnackBar(snackBar);
+        messenger?.showSnackBar(
+          _withDockMargin(
+            context,
+            snackBar,
+            dockExtent: LiquidGlassDockScope.extentOf(context),
+          ),
+        );
         return;
       }
 
@@ -37,6 +45,64 @@ class SnackBarUtil {
     } catch (error, stackTrace) {
       onError?.call(error, stackTrace);
     }
+  }
+
+  static SnackBar _withDockMargin(
+    BuildContext context,
+    SnackBar snackBar, {
+    required double dockExtent,
+  }) {
+    if (dockExtent <= 0) return snackBar;
+
+    final margin = snackBar.margin ??
+        Theme.of(context).snackBarTheme.insetPadding ??
+        const EdgeInsets.fromLTRB(16, 5, 16, 8);
+    var resolvedMargin = margin.resolve(Directionality.of(context));
+    if (snackBar.width != null) {
+      final horizontal = ((MediaQuery.sizeOf(context).width - snackBar.width!) / 2)
+          .clamp(0.0, double.infinity)
+          .toDouble();
+      resolvedMargin = EdgeInsets.fromLTRB(
+        horizontal,
+        resolvedMargin.top,
+        horizontal,
+        resolvedMargin.bottom,
+      );
+    }
+
+    return SnackBar(
+      key: snackBar.key,
+      content: snackBar.content,
+      backgroundColor: snackBar.backgroundColor,
+      elevation: snackBar.elevation,
+      margin: resolvedMargin.copyWith(
+        bottom: resolvedMargin.bottom + dockExtent,
+      ),
+      padding: snackBar.padding,
+      shape: snackBar.shape,
+      hitTestBehavior: snackBar.hitTestBehavior,
+      behavior: SnackBarBehavior.floating,
+      action: snackBar.action,
+      actionOverflowThreshold: snackBar.actionOverflowThreshold,
+      showCloseIcon: snackBar.showCloseIcon,
+      closeIconColor: snackBar.closeIconColor,
+      duration: snackBar.duration,
+      persist: snackBar.persist,
+      animation: snackBar.animation,
+      onVisible: snackBar.onVisible,
+      dismissDirection: snackBar.dismissDirection,
+      clipBehavior: snackBar.clipBehavior,
+    );
+  }
+
+  static void _show(BuildContext context, SnackBar snackBar) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      _withDockMargin(
+        context,
+        snackBar,
+        dockExtent: LiquidGlassDockScope.extentOf(context),
+      ),
+    );
   }
 
   static String? _extractMessage(Widget content) {
@@ -65,7 +131,8 @@ class SnackBarUtil {
     String message, {
     Duration duration = const Duration(seconds: 2),
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    _show(
+      context,
       SnackBar(
         content: Row(
           children: [
@@ -98,7 +165,8 @@ class SnackBarUtil {
     String message, {
     Duration duration = const Duration(seconds: 4),
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    _show(
+      context,
       SnackBar(
         content: Row(
           children: [
@@ -136,7 +204,8 @@ class SnackBarUtil {
     final warningColor = colorScheme.tertiary;
     final onWarningColor = colorScheme.onTertiary;
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    _show(
+      context,
       SnackBar(
         content: Row(
           children: [
@@ -169,7 +238,8 @@ class SnackBarUtil {
     String message, {
     Duration duration = const Duration(seconds: 2),
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    _show(
+      context,
       SnackBar(
         content: Row(
           children: [
@@ -202,7 +272,8 @@ class SnackBarUtil {
     String message, {
     Duration duration = const Duration(seconds: 30),
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    _show(
+      context,
       SnackBar(
         content: Row(
           children: [

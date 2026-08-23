@@ -699,6 +699,7 @@ class _VirtualizedSliverCollectionState<T>
         ),
         hasNextPage: pagination.hasMore,
         isLoading: pagination.isLoading || _pageRequestInFlight,
+        bottomInset: liquidGlassDockExtent,
         child: scrollView,
       );
     }

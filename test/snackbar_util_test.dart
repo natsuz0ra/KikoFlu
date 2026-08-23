@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kikoeru_flutter/src/utils/snackbar_util.dart';
+import 'package:kikoeru_flutter/src/widgets/liquid_glass_layout.dart';
 
 Widget _testApp(SnackBar snackBar) {
   return MaterialApp(
@@ -76,6 +77,81 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.circle), findsOneWidget);
+    });
+
+    testWidgets('moves a floating snackbar close above the measured dock',
+        (tester) async {
+      final dockExtent = ValueNotifier<double>(96);
+      final action = SnackBarAction(label: 'undo', onPressed: () {});
+      const duration = Duration(seconds: 7);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LiquidGlassDockScope(
+              notifier: dockExtent,
+              child: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => SnackBarUtil.showFromSnackBar(
+                    context,
+                    SnackBar(
+                      content: const Icon(Icons.circle),
+                      action: action,
+                      duration: duration,
+                    ),
+                  ),
+                  child: const Text('show dock'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('show dock'));
+      await tester.pump();
+
+      final shown = tester.widget<SnackBar>(find.byType(SnackBar));
+      expect(shown.action, same(action));
+      expect(shown.duration, duration);
+      expect(shown.behavior, SnackBarBehavior.floating);
+      expect((shown.margin! as EdgeInsets).bottom, 104);
+    });
+
+    testWidgets('converts fixed width into centered margins above the dock',
+        (tester) async {
+      final dockExtent = ValueNotifier<double>(96);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LiquidGlassDockScope(
+              notifier: dockExtent,
+              child: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => SnackBarUtil.showFromSnackBar(
+                    context,
+                    const SnackBar(
+                      content: Icon(Icons.circle),
+                      width: 200,
+                    ),
+                  ),
+                  child: const Text('show fixed width'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('show fixed width'));
+      await tester.pump();
+
+      final shown = tester.widget<SnackBar>(find.byType(SnackBar));
+      final margin = shown.margin! as EdgeInsets;
+      expect(shown.width, isNull);
+      expect(margin.left, margin.right);
+      expect(margin.bottom, 104);
     });
   });
 }
