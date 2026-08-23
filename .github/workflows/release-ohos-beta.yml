@@ -111,7 +111,7 @@ jobs:
         env:
           GIT_LFS_SKIP_SMUDGE: '1'
         shell: powershell
-        run: flutter pub get --enforce-lockfile
+        run: flutter pub get --enforce-lockfile --no-example
 
       - name: Build unsigned release HAP
         shell: powershell
@@ -146,7 +146,10 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -Path release-notes.md -ItemType File -Force | Out-Null
+          $notesPath = Join-Path 'release-notes' "$env:TAG.md"
+          if (-not (Test-Path -LiteralPath $notesPath -PathType Leaf)) {
+            throw "Reviewed release notes were not found at $notesPath."
+          }
 
           $savedErrorActionPreference = $ErrorActionPreference
           $ErrorActionPreference = 'SilentlyContinue'
@@ -161,10 +164,10 @@ jobs:
               --repo $env:GITHUB_REPOSITORY `
               --target main `
               --title $env:TAG `
-              --notes-file release-notes.md
+              --notes-file $notesPath
           }
 
           gh release edit $env:TAG `
             --repo $env:GITHUB_REPOSITORY `
             --title $env:TAG `
-            --notes-file release-notes.md
+            --notes-file $notesPath
