@@ -5,31 +5,29 @@
 This repository is forked from
 [pa-jesusf/KikoFlu](https://github.com/pa-jesusf/KikoFlu) and uses
 [CPF-Flutter/flutter_flutter](https://gitcode.com/CPF-Flutter/flutter_flutter)
-to add native HarmonyOS NEXT HAP support while keeping features in sync with
-upstream.
+to add native HarmonyOS NEXT HAP support while staying in sync with upstream.
 
 > [!IMPORTANT]
 >
-> This repository primarily maintains the HarmonyOS NEXT port and releases.
-> For other platforms, use the builds from the
-> [upstream repository](https://github.com/pa-jesusf/KikoFlu).
+> This repository only maintains the HarmonyOS NEXT port and releases. For
+> application features, usage instructions, and backend configuration, see the
+> [upstream repository](https://github.com/pa-jesusf/KikoFlu) and
+> [upstream Wiki](https://github.com/pa-jesusf/KikoFlu/wiki).
 
 ## Support
 
 - Target API: 26.0.0
 - Minimum compatible version: HarmonyOS 6.0.2 (API 22)
-- Flutter: ohos-3.41.9-dev (revision `c83ab0015f`)
+- Flutter: 3.41.10-ohos-1.0.0-0 (revision `dcd184d2b8`)
 
 ## Port Status
 
-**The main HarmonyOS features are in sync with upstream.**
-
-- [x] Work browsing, search, filtering, and details
-- [x] Audio playback, background playback, and system media controls
-- [x] Audio caching, downloads, and offline browsing
-- [x] Subtitle loading, editing, translation, and library
-- [x] Image, text, and PDF viewing
-- [x] Themes, localization, and privacy mode
+The main HarmonyOS functionality is kept in sync with upstream, including work
+browsing and search, audio playback and system media controls, downloads and
+offline browsing, subtitles and translation, file previews, themes, and
+localization. See the
+[upstream repository](https://github.com/pa-jesusf/KikoFlu) for detailed
+feature information.
 
 ## Download and Installation
 
