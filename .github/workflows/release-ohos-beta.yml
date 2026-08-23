@@ -159,15 +159,24 @@ jobs:
 
           if ($releaseExists) {
             gh release upload $env:TAG $env:ASSET_NAME --repo $env:GITHUB_REPOSITORY --clobber
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to upload release asset for $env:TAG."
+            }
           } else {
             gh release create $env:TAG $env:ASSET_NAME `
               --repo $env:GITHUB_REPOSITORY `
               --target main `
               --title $env:TAG `
               --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to create release $env:TAG."
+            }
           }
 
           gh release edit $env:TAG `
             --repo $env:GITHUB_REPOSITORY `
             --title $env:TAG `
             --notes-file $notesPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to update release notes for $env:TAG."
+          }
