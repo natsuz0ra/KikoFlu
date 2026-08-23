@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import 'virtualized_sliver_collection.dart';
+
 /// Scrolls an explicitly controlled foreground scroll view to the top when the
 /// platform reports a status bar tap.
 class StatusBarScrollToTop extends StatefulWidget {
@@ -10,7 +12,7 @@ class StatusBarScrollToTop extends StatefulWidget {
     required this.child,
   });
 
-  final ScrollController controller;
+  final Object controller;
   final Widget child;
 
   @override
@@ -18,7 +20,7 @@ class StatusBarScrollToTop extends StatefulWidget {
 }
 
 extension StatusBarScrollToTopExtension on Widget {
-  Widget scrollToTopOnStatusBar(ScrollController controller) {
+  Widget scrollToTopOnStatusBar(Object controller) {
     return StatusBarScrollToTop(
       controller: controller,
       child: this,
@@ -44,10 +46,19 @@ class _StatusBarScrollToTopState extends State<StatusBarScrollToTop>
 
   @override
   void handleStatusBarTap() {
-    final controller = widget.controller;
-    if (!mounted || !controller.hasClients || !_isForeground()) {
+    if (!mounted || !_isForeground()) {
       return;
     }
+
+    final controller = widget.controller;
+    if (controller is VirtualizedCollectionController) {
+      controller.scrollToTop(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+    if (controller is! ScrollController || !controller.hasClients) return;
 
     for (final position in controller.positions) {
       final notificationContext = position.context.notificationContext;

@@ -224,7 +224,7 @@ class GlassRegionReporter extends LeafRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) =>
-      RenderGlassRegion(group: group, style: style, shape: shape, tint: tint);
+      RenderGlassRegion(group, style, shape, tint);
 
   @override
   void updateRenderObject(
@@ -242,12 +242,7 @@ class GlassRegionReporter extends LeafRenderObjectWidget {
 /// Render object behind [GlassRegionReporter].
 class RenderGlassRegion extends RenderBox {
   /// Creates the render object; parameters mirror [GlassRegionReporter].
-  RenderGlassRegion({
-    required this._group,
-    required this._style,
-    required this._shape,
-    this._tint,
-  });
+  RenderGlassRegion(this._group, this._style, this._shape, [this._tint]);
 
   LiquidGlassGroupState _group;
   LiquidGlassStyle _style;
