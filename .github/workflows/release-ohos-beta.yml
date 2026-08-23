@@ -83,6 +83,11 @@ jobs:
             (Join-Path $env:JAVA_HOME 'bin')
           ) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+          $toolchainRoot = Split-Path -Parent $env:FLUTTER_HOME
+          $pubCache = Join-Path $toolchainRoot 'pub-cache'
+          New-Item -ItemType Directory -Force -Path $pubCache | Out-Null
+          "PUB_CACHE=$pubCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Validate API 26 Beta2 toolchain
         shell: powershell
         run: |
