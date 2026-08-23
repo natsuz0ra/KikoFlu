@@ -1,6 +1,31 @@
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { FlutterPlugin, FlutterPluginBinding, MethodCall, MethodChannel, MethodResult } from '@ohos/flutter_ohos';
 
+const attachedChannels: MethodChannel[] = [];
+
+function latestAttachedChannel(): MethodChannel | null {
+  return attachedChannels.length === 0
+    ? null : attachedChannels[attachedChannels.length - 1];
+}
+
+/**
+ * 原生顶栏与 Flutter 共用插件绑定的通道直接通信。
+ *
+ * ArkUI 组件与 EntryAbility 的 Context 拥有不同 EventHub，不能依赖跨 Context
+ * 事件转发。返回值只表示当前存在已绑定的 Flutter 通道且已发起回调。
+ */
+export function invokeNativeTopAction(page: string, action: string): boolean {
+  const channel = latestAttachedChannel();
+  if (channel === null || action === '') {
+    return false;
+  }
+  channel.invokeMethod('onNativeTopAction', {
+    page: page,
+    action: action
+  });
+  return true;
+}
+
 /** Flutter 与 ArkUI 沉浸光感外壳之间的通道实现。 */
 export default class HarmonyChannel implements FlutterPlugin {
   private channel: MethodChannel | null = null;
@@ -16,9 +41,17 @@ export default class HarmonyChannel implements FlutterPlugin {
   onAttachedToEngine(binding: FlutterPluginBinding): void {
     this.channel = new MethodChannel(binding.getBinaryMessenger(), 'harmonyChannel');
     this.channel.setMethodCallHandler(this);
+    attachedChannels.push(this.channel);
   }
 
   onDetachedFromEngine(_binding: FlutterPluginBinding): void {
+    const channel = this.channel;
+    if (channel !== null) {
+      const index = attachedChannels.indexOf(channel);
+      if (index >= 0) {
+        attachedChannels.splice(index, 1);
+      }
+    }
     this.channel?.setMethodCallHandler(null);
     this.channel = null;
   }

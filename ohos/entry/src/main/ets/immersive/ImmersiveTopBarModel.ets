@@ -1,7 +1,5 @@
 import { uiMaterial } from '@kit.ArkUI';
 
-export const EVENT_NATIVE_TOP_ACTION = 'EVENT_NATIVE_TOP_ACTION';
-
 export function immersiveMaterial(): uiMaterial.ImmersiveMaterial {
   return new uiMaterial.ImmersiveMaterial({
     style: uiMaterial.ImmersiveStyle.ULTRA_THIN,

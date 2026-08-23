@@ -1,11 +1,15 @@
-import common from '@ohos.app.ability.common';
-import { EVENT_NATIVE_TOP_ACTION, immersiveMaterial, topIconResource } from './ImmersiveTopBarModel';
+import { invokeNativeTopAction } from '../plugins/HarmonyChannel';
+import { immersiveMaterial, topIconResource } from './ImmersiveTopBarModel';
 
-const SECONDARY_FILTER_WIDTH = 180;
+const SECONDARY_FILTER_MIN_WIDTH = 104;
+const SECONDARY_FILTER_MAX_WIDTH = 152;
+const SECONDARY_FILTER_BASE_WIDTH = 80;
+const SECONDARY_FILTER_ASCII_WIDTH = 7;
+const SECONDARY_FILTER_WIDE_WIDTH = 12;
+const SECONDARY_MENU_WIDTH = 152;
 
 @Component
 export struct ImmersiveTopBar {
-  private context = getContext(this) as common.UIAbilityContext;
   @Prop statusBarHeight: number = 0;
   @StorageLink('topBarPage') topBarPage: string = 'works';
   @StorageLink('topTitle') topTitle: string = '';
@@ -36,11 +40,25 @@ export struct ImmersiveTopBar {
   @StorageLink('topMaskWeakColor') topMaskWeakColor: string = '#24eff1f5';
 
   private emit(action: string): void {
-    this.context.eventHub.emit(EVENT_NATIVE_TOP_ACTION, this.topBarPage, action);
+    invokeNativeTopAction(this.topBarPage, action);
   }
 
   private runToolAction(action: string): void {
     this.emit(action);
+  }
+
+  private secondaryFilterWidth(): number {
+    const label = this.secondarySelectedMode < this.secondaryModeLabels.length
+      ? this.secondaryModeLabels[this.secondarySelectedMode] : '';
+    let textWidth = 0;
+    for (let index = 0; index < label.length; index++) {
+      textWidth += label.charCodeAt(index) <= 0xFF
+        ? SECONDARY_FILTER_ASCII_WIDTH : SECONDARY_FILTER_WIDE_WIDTH;
+    }
+    return Math.min(
+      SECONDARY_FILTER_MAX_WIDTH,
+      Math.max(SECONDARY_FILTER_MIN_WIDTH, SECONDARY_FILTER_BASE_WIDTH + textWidth)
+    );
   }
 
   @Builder
@@ -60,7 +78,7 @@ export struct ImmersiveTopBar {
           })
       }, (label: string, index: number) => `${this.topBarPage}_secondary_menu_${index}_${label}`)
     }
-    .width(SECONDARY_FILTER_WIDTH)
+    .width(SECONDARY_MENU_WIDTH)
   }
 
   @Builder
@@ -220,10 +238,11 @@ export struct ImmersiveTopBar {
       }
       .height(48)
       .padding({ left: 14, right: 10 })
-      .width(SECONDARY_FILTER_WIDTH)
+      .width(this.secondaryFilterWidth())
       .borderRadius(24)
       .systemMaterial(immersiveMaterial())
       .bindMenu(this.secondaryMenu, { placement: Placement.BottomLeft })
+      Blank().layoutWeight(1)
       if (this.secondaryToolActions.length > 0) {
         Row() {
           ForEach(this.secondaryToolActions, (_action: string, index: number) => {

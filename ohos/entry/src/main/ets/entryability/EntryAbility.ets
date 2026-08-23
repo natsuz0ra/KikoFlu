@@ -4,7 +4,6 @@ import { GeneratedPluginRegistrant } from '../plugins/GeneratedPluginRegistrant'
 import HarmonyChannel from '../plugins/HarmonyChannel';
 
 const EVENT_NATIVE_TAB_SELECTED = 'EVENT_NATIVE_TAB_SELECTED';
-const EVENT_NATIVE_TOP_ACTION = 'EVENT_NATIVE_TOP_ACTION';
 const EVENT_NATIVE_BOTTOM_METRICS = 'EVENT_NATIVE_BOTTOM_METRICS';
 
 export default class EntryAbility extends FlutterAbility {
@@ -13,15 +12,6 @@ export default class EntryAbility extends FlutterAbility {
   private shellListenersRegistered: boolean = false;
   private nativeTabSelectedCallback = (index: number): void => {
     this.flutterChannel?.invokeMethod('onNativeTabSelected', { index: index });
-  };
-  private nativeTopActionCallback = (
-    page: string,
-    action: string
-  ): void => {
-    this.flutterChannel?.invokeMethod('onNativeTopAction', {
-      page: page,
-      action: action
-    });
   };
   private nativeBottomMetricsCallback = (extent: number): void => {
     this.flutterChannel?.invokeMethod('onNativeBottomMetrics', { extent: extent });
@@ -49,7 +39,6 @@ export default class EntryAbility extends FlutterAbility {
       return;
     }
     this.context.eventHub.on(EVENT_NATIVE_TAB_SELECTED, this.nativeTabSelectedCallback);
-    this.context.eventHub.on(EVENT_NATIVE_TOP_ACTION, this.nativeTopActionCallback);
     this.context.eventHub.on(EVENT_NATIVE_BOTTOM_METRICS, this.nativeBottomMetricsCallback);
     this.shellListenersRegistered = true;
   }
@@ -59,7 +48,6 @@ export default class EntryAbility extends FlutterAbility {
       return;
     }
     this.context.eventHub.off(EVENT_NATIVE_TAB_SELECTED, this.nativeTabSelectedCallback);
-    this.context.eventHub.off(EVENT_NATIVE_TOP_ACTION, this.nativeTopActionCallback);
     this.context.eventHub.off(EVENT_NATIVE_BOTTOM_METRICS, this.nativeBottomMetricsCallback);
     this.shellListenersRegistered = false;
   }

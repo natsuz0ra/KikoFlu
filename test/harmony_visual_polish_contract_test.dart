@@ -12,8 +12,13 @@ void main() {
 
       expect(source, contains('.linearGradient({'));
       expect(source, isNot(contains('.linearGradientBlur(')));
+      expect(source, contains('const SECONDARY_FILTER_MIN_WIDTH = 104;'));
+      expect(source, contains('const SECONDARY_FILTER_MAX_WIDTH = 152;'));
+      expect(source, contains('const SECONDARY_MENU_WIDTH = 152;'));
+      expect(source, contains('.width(this.secondaryFilterWidth())'));
+      expect(source, contains('.width(SECONDARY_MENU_WIDTH)'));
       expect(
-        RegExp(r'\.width\(SECONDARY_FILTER_WIDTH\)').allMatches(source).length,
+        RegExp(r'Blank\(\)\.layoutWeight\(1\)').allMatches(source).length,
         2,
       );
       expect(source, contains('.bindMenu(this.secondaryMenu'));
