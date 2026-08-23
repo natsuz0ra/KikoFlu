@@ -21,6 +21,7 @@ env:
   HARMONYOS_API_VERSION: '26'
   HARMONYOS_PLATFORM_VERSION: 26.0.0
   HARMONYOS_SDK_STAGE: Beta2
+  PUB_HOSTED_URL: https://pub.flutter-io.cn
 
 jobs:
   release:
