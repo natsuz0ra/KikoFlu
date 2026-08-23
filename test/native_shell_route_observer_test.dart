@@ -18,9 +18,13 @@ void main() {
     observer.didPush(popupRoute, mainRoute);
 
     expect(observer.keepsShellVisibleFor(mainRoute), isTrue);
+    expect(
+      observer.dispositionAbove(mainRoute),
+      NativeShellRouteDisposition.mainShell,
+    );
   });
 
-  test('hides the native shell when another page route is pushed', () {
+  test('marks an ordinary page as temporary main-shell coverage', () {
     final observer = NativeShellRouteObserver();
     addTearDown(observer.revision.dispose);
     final mainRoute = MaterialPageRoute<void>(
@@ -33,9 +37,17 @@ void main() {
     observer.didPush(mainRoute, null);
     observer.didPush(detailRoute, mainRoute);
     expect(observer.keepsShellVisibleFor(mainRoute), isFalse);
+    expect(
+      observer.dispositionAbove(mainRoute),
+      NativeShellRouteDisposition.flutterPage,
+    );
 
     observer.didPop(detailRoute, mainRoute);
     expect(observer.keepsShellVisibleFor(mainRoute), isTrue);
+    expect(
+      observer.dispositionAbove(mainRoute),
+      NativeShellRouteDisposition.mainShell,
+    );
   });
 
   test('exposes a route-scoped native top owner through popup overlays', () {
@@ -57,6 +69,10 @@ void main() {
     observer.didPush(popupRoute, resultRoute);
 
     expect(observer.keepsShellVisibleFor(mainRoute), isFalse);
+    expect(
+      observer.dispositionAbove(mainRoute),
+      NativeShellRouteDisposition.nativeTopPage,
+    );
     expect(
       observer.nativeTopPageAbove(mainRoute),
       HarmonyTopBarPage.searchResult,

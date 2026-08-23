@@ -12,6 +12,21 @@ class HarmonyNativeTopPageRoute<T> extends MaterialPageRoute<T> {
   final HarmonyTopBarPage nativeTopPage;
 }
 
+enum NativeShellRouteDisposition {
+  /// The main shell route is current, or is only covered by popup routes.
+  mainShell,
+
+  /// A regular Flutter page covers the main shell temporarily.
+  ///
+  /// ArkUI must be hidden, but the confirmed native takeover and Flutter
+  /// layout stay latched until the page is popped. That keeps the outgoing
+  /// main page from rebuilding its bottom bar and MiniPlayer mid-transition.
+  flutterPage,
+
+  /// A nested page explicitly owns the native top bar.
+  nativeTopPage,
+}
+
 /// Tracks whether a page route, rather than a transient popup, covers the
 /// application shell.
 ///
@@ -24,30 +39,34 @@ class NativeShellRouteObserver extends NavigatorObserver {
   /// Changes whenever the root navigator route stack changes.
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
-  bool keepsShellVisibleFor(Route<dynamic>? shellRoute) {
-    if (shellRoute == null) return true;
-
-    final shellIndex = _routes.indexOf(shellRoute);
-    if (shellIndex < 0) return shellRoute.isCurrent;
-
-    for (final route in _routes.skip(shellIndex + 1)) {
-      if (route is! PopupRoute<dynamic>) return false;
-    }
-    return true;
+  NativeShellRouteDisposition dispositionAbove(Route<dynamic>? shellRoute) {
+    final coveringRoute = _lastPageRouteAbove(shellRoute);
+    if (coveringRoute == null) return NativeShellRouteDisposition.mainShell;
+    return coveringRoute is HarmonyNativeTopPageRoute<dynamic>
+        ? NativeShellRouteDisposition.nativeTopPage
+        : NativeShellRouteDisposition.flutterPage;
   }
 
+  bool keepsShellVisibleFor(Route<dynamic>? shellRoute) =>
+      dispositionAbove(shellRoute) == NativeShellRouteDisposition.mainShell;
+
   HarmonyTopBarPage? nativeTopPageAbove(Route<dynamic>? shellRoute) {
+    final coveringRoute = _lastPageRouteAbove(shellRoute);
+    return coveringRoute is HarmonyNativeTopPageRoute<dynamic>
+        ? coveringRoute.nativeTopPage
+        : null;
+  }
+
+  Route<dynamic>? _lastPageRouteAbove(Route<dynamic>? shellRoute) {
     if (shellRoute == null) return null;
     final shellIndex = _routes.indexOf(shellRoute);
-    if (shellIndex < 0) return null;
+    if (shellIndex < 0) return shellRoute.isCurrent ? null : shellRoute;
 
     Route<dynamic>? coveringRoute;
     for (final route in _routes.skip(shellIndex + 1)) {
       if (route is! PopupRoute<dynamic>) coveringRoute = route;
     }
-    return coveringRoute is HarmonyNativeTopPageRoute<dynamic>
-        ? coveringRoute.nativeTopPage
-        : null;
+    return coveringRoute;
   }
 
   @override

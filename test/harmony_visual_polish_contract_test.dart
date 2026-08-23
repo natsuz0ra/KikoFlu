@@ -90,4 +90,45 @@ void main() {
     expect(overlay, contains('setNativeShellSuppressed(false)'));
     expect(miniPlayer, contains('child: RepaintBoundary('));
   });
+
+  test('ordinary page routes preserve the confirmed native layout latch', () {
+    final mainScreen = File(
+      'lib/src/screens/main_screen.dart',
+    ).readAsStringSync();
+    final channel = File(
+      'lib/src/platform/harmony_channel.dart',
+    ).readAsStringSync();
+
+    expect(
+      mainScreen,
+      allOf(
+        contains('NativeShellRouteDisposition.flutterPage'),
+        contains('preserveBottomTakeover'),
+        contains('preserveTopTakeover'),
+        contains('await HarmonyChannel.setNativeBottomBar(false);'),
+        contains('await HarmonyChannel.setNativeTopBar(false);'),
+        contains(
+          'final keepMainLayout = keepsNativeShell || temporarilyCovered;',
+        ),
+      ),
+    );
+    expect(
+      mainScreen,
+      matches(
+        RegExp(
+          r'bottomEnabled:\s*keepMainLayout\s*&&\s*!isLandscape\s*&&\s*useLiquidGlass',
+        ),
+      ),
+    );
+    expect(
+      mainScreen,
+      matches(
+        RegExp(
+          r'useNativeOhosBottom\s*=\s*keepMainLayout\s*&&\s*!isLandscape\s*&&\s*HarmonyChannel\.nativeBottomBarActive\.value',
+        ),
+      ),
+    );
+    expect(mainScreen, isNot(contains('setNativeShellSuppressed(')));
+    expect(channel, isNot(contains('_routeShellSuppressed')));
+  });
 }

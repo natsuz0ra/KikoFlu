@@ -33,6 +33,7 @@ class _NativeShellRequest {
   const _NativeShellRequest({
     required this.bottomEnabled,
     required this.topEnabled,
+    required this.temporarilyCovered,
     required this.topPage,
     required this.topDataRevision,
     required this.showUpdateBadge,
@@ -43,6 +44,7 @@ class _NativeShellRequest {
 
   final bool bottomEnabled;
   final bool topEnabled;
+  final bool temporarilyCovered;
   final HarmonyTopBarPage? topPage;
   final int topDataRevision;
   final bool showUpdateBadge;
@@ -53,6 +55,7 @@ class _NativeShellRequest {
   String get signature => <Object?>[
     bottomEnabled,
     topEnabled,
+    temporarilyCovered,
     topPage?.name,
     topDataRevision,
     showUpdateBadge,
@@ -162,6 +165,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   void _scheduleNativeShellSync({
     required bool bottomEnabled,
     required bool topEnabled,
+    required bool temporarilyCovered,
     required HarmonyTopBarPage? topPage,
     required bool showUpdateBadge,
     required List<String> labels,
@@ -171,6 +175,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final request = _NativeShellRequest(
       bottomEnabled: bottomEnabled,
       topEnabled: topEnabled,
+      temporarilyCovered: temporarilyCovered,
       topPage: topPage,
       topDataRevision: HarmonyChannel.nativeTopDataRevision.value,
       showUpdateBadge: showUpdateBadge,
@@ -213,6 +218,30 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   Future<void> _syncNativeShell(_NativeShellRequest request) async {
+    if (request.temporarilyCovered) {
+      final preserveBottomTakeover =
+          request.bottomEnabled && HarmonyChannel.nativeBottomBarActive.value;
+      final preserveTopTakeover =
+          request.topEnabled && HarmonyChannel.nativeTopBarActive.value;
+
+      // Hide only the ArkUI siblings. The confirmed takeover flags are layout
+      // latches while this ordinary Flutter page covers MainScreen, so the
+      // outgoing route does not remount the Flutter dock or restyle MiniPlayer.
+      await HarmonyChannel.setNativeBottomBar(false);
+      await HarmonyChannel.setNativeTopBar(false);
+      if (!preserveTopTakeover) HarmonyChannel.deactivateNativeTopBar();
+
+      if (_pendingNativeShellRequest != null) return;
+      if (!mounted) {
+        HarmonyChannel.nativeTopBarActive.value = false;
+        HarmonyChannel.nativeBottomBarActive.value = false;
+        return;
+      }
+      HarmonyChannel.nativeTopBarActive.value = preserveTopTakeover;
+      HarmonyChannel.nativeBottomBarActive.value = preserveBottomTakeover;
+      return;
+    }
+
     var bottomActive = false;
     var topActive = false;
     try {
@@ -317,9 +346,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final shellRoute = ModalRoute.of(context);
-    final keepsNativeShell = nativeShellRouteObserver.keepsShellVisibleFor(
+    final routeDisposition = nativeShellRouteObserver.dispositionAbove(
       shellRoute,
     );
+    final keepsNativeShell =
+        routeDisposition == NativeShellRouteDisposition.mainShell;
+    final temporarilyCovered =
+        routeDisposition == NativeShellRouteDisposition.flutterPage;
+    final keepMainLayout = keepsNativeShell || temporarilyCovered;
     final routeTopPage = nativeShellRouteObserver.nativeTopPageAbove(
       shellRoute,
     );
@@ -333,7 +367,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       2 => HarmonyTopBarPage.my,
       _ => null,
     };
-    final topPage = routeTopPage ?? (keepsNativeShell ? mainTopPage : null);
+    final topPage = routeTopPage ?? (keepMainLayout ? mainTopPage : null);
     final requestNativeTop =
         ref.watch(liquidGlassTopBarProvider) &&
         runtimePlatform.usesNativeHarmonyGlass &&
@@ -342,15 +376,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final destinations = _buildDestinations(context, showUpdateBadge);
     final colorScheme = Theme.of(context).colorScheme;
     _scheduleNativeShellSync(
-      bottomEnabled: keepsNativeShell && !isLandscape && useLiquidGlass,
+      bottomEnabled: keepMainLayout && !isLandscape && useLiquidGlass,
       topEnabled: requestNativeTop,
+      temporarilyCovered: temporarilyCovered,
       topPage: topPage,
       showUpdateBadge: showUpdateBadge,
       labels: destinations.map((destination) => destination.label).toList(),
       colors: harmonyShellColorsFromColorScheme(colorScheme),
     );
     final useNativeOhosBottom =
-        keepsNativeShell &&
+        keepMainLayout &&
         !isLandscape &&
         HarmonyChannel.nativeBottomBarActive.value;
 
