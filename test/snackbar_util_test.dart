@@ -153,5 +153,39 @@ void main() {
       expect(margin.left, margin.right);
       expect(margin.bottom, 104);
     });
+
+    testWidgets('supports a tighter page-specific dock gap', (tester) async {
+      final dockExtent = ValueNotifier<double>(96);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LiquidGlassDockScope(
+              notifier: dockExtent,
+              child: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => SnackBarUtil.showFromSnackBar(
+                    context,
+                    const SnackBar(
+                      content: Text('cache cleared'),
+                      backgroundColor: Colors.green,
+                    ),
+                    dockGap: 2,
+                  ),
+                  child: const Text('show tight gap'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('show tight gap'));
+      await tester.pump();
+
+      final shown = tester.widget<SnackBar>(find.byType(SnackBar));
+      expect((shown.margin! as EdgeInsets).bottom, 98);
+    });
+
   });
 }

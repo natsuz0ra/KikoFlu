@@ -51,12 +51,7 @@ class _OverscrollNextPageDetectorState
             right: 0,
             height: _overscroll.clamp(0.0, 200.0),
             child: Container(
-              alignment: widget.bottomInset > 0
-                  ? Alignment.bottomCenter
-                  : Alignment.center,
-              padding: widget.bottomInset > 0
-                  ? const EdgeInsets.only(bottom: 8)
-                  : null,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,

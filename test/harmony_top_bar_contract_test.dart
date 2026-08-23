@@ -32,6 +32,31 @@ void main() {
     );
   });
 
+  test('keeps dark top tint translucent', () {
+    final colors = harmonyShellColorsFromColorScheme(
+      ColorScheme.fromSeed(
+        seedColor: const Color(0xff1677ff),
+        brightness: Brightness.dark,
+      ),
+    );
+
+    expect(colors.topMaskStrong, startsWith('#42'));
+    expect(colors.topMaskWeak, startsWith('#10'));
+  });
+
+  test('keeps native light feedback enabled for dark-mode pressed capsules', () {
+    final model = File(
+      'ohos/entry/src/main/ets/immersive/ImmersiveTopBarModel.ets',
+    ).readAsStringSync();
+    final topBar = File(
+      'ohos/entry/src/main/ets/immersive/ImmersiveTopBar.ets',
+    ).readAsStringSync();
+
+    expect(model, contains('style: uiMaterial.ImmersiveStyle.ULTRA_THIN'));
+    expect(model, contains('lightEffect: {}'));
+    expect(topBar, contains('.systemMaterial(immersiveMaterial())'));
+  });
+
   test('routes every native top action through the attached channel', () {
     final plugin = File(
       'ohos/entry/src/main/ets/plugins/HarmonyChannel.ets',
@@ -95,6 +120,16 @@ void main() {
 
     for (final entry in owners.entries) {
       final source = File(entry.key).readAsStringSync();
+      expect(source, contains('HarmonyNativeTopActionRegistration?'));
+      expect(
+        source,
+        contains(
+          '_nativeTopActionRegistration = '
+          'HarmonyChannel.setNativeTopActionHandler(',
+        ),
+      );
+      expect(source, contains('_nativeTopActionRegistration?.dispose();'));
+      expect(source, isNot(contains('setNativeTopActionHandler(null')));
       expect(source, contains('setNativeTopActionHandler('));
       expect(source, contains(entry.value.page));
       expect(source, contains('_handleNativeTopAction'));

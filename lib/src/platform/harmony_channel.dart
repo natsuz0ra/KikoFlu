@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Color, ColorScheme;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding;
 
 import 'runtime_platform.dart';
 
@@ -21,6 +22,7 @@ class HarmonyShellCapabilities {
 enum HarmonyTopBarPage { works, search, searchResult, my }
 
 typedef HarmonyShellColors = ({
+  bool isDark,
   String badge,
   String selected,
   String selectedContainer,
@@ -30,16 +32,28 @@ typedef HarmonyShellColors = ({
 });
 
 HarmonyShellColors harmonyShellColorsFromColorScheme(ColorScheme colors) => (
+  isDark: colors.brightness == Brightness.dark,
   badge: _argbHex(colors.error),
   selected: _argbHex(colors.primary),
   selectedContainer: _argbHex(colors.primary.withValues(alpha: 0.14)),
   unselected: _argbHex(colors.onSurfaceVariant),
-  topMaskStrong: _argbHex(colors.surface.withValues(alpha: 0.82)),
-  topMaskWeak: _argbHex(colors.surface.withValues(alpha: 0.12)),
+  // Keep the system material transparent so its dark-mode light feedback is
+  // preserved; only the static full-width tint follows the theme.
+  topMaskStrong: _argbHex(
+    colors.brightness == Brightness.dark
+        ? const Color(0x4216171b)
+        : colors.surface.withValues(alpha: 0.82),
+  ),
+  topMaskWeak: _argbHex(
+    colors.brightness == Brightness.dark
+        ? const Color(0x1016171b)
+        : colors.surface.withValues(alpha: 0.12),
+  ),
 );
 
 extension HarmonyShellColorsSignature on HarmonyShellColors {
   String get signature => <String>[
+    isDark.toString(),
     badge,
     selected,
     selectedContainer,
@@ -58,6 +72,23 @@ class HarmonyNativeTopAction {
 
   final HarmonyTopBarPage page;
   final String action;
+}
+
+typedef HarmonyNativeTopActionHandler =
+    void Function(HarmonyNativeTopAction action);
+
+final class HarmonyNativeTopActionRegistration {
+  HarmonyNativeTopActionRegistration._(this.page, this.handler);
+
+  final HarmonyTopBarPage page;
+  final HarmonyNativeTopActionHandler handler;
+  bool _active = true;
+
+  void dispose() {
+    if (!_active) return;
+    _active = false;
+    HarmonyChannel.clearNativeTopActionHandler(this);
+  }
 }
 
 @immutable
@@ -138,6 +169,7 @@ class _HarmonyTopBarData {
     'selectedColor': colors.selected,
     'selectedContainerColor': colors.selectedContainer,
     'unselectedColor': colors.unselected,
+    'isDark': colors.isDark,
     'topMaskStrongColor': colors.topMaskStrong,
     'topMaskWeakColor': colors.topMaskWeak,
   };
@@ -210,10 +242,7 @@ abstract final class HarmonyChannel {
   static bool? _confirmedShellSuppressed;
   static Future<bool>? _shellSuppressionSync;
   static final ValueNotifier<int> nativeTopDataRevision = ValueNotifier(0);
-  static final Map<
-    HarmonyTopBarPage,
-    void Function(HarmonyNativeTopAction action)
-  >
+  static final Map<HarmonyTopBarPage, HarmonyNativeTopActionHandler>
   _topActionHandlers = {};
 
   static void Function(int index)? onNativeTabSelected;
@@ -241,7 +270,8 @@ abstract final class HarmonyChannel {
               .where((candidate) => candidate.name == pageName)
               .firstOrNull;
           if (page != null && action is String) {
-            _topActionHandlers[page]?.call(
+            _dispatchNativeTopAction(
+              page,
               HarmonyNativeTopAction(page: page, action: action),
             );
           }
@@ -306,15 +336,41 @@ abstract final class HarmonyChannel {
   static bool isNativeTopBarActiveFor(HarmonyTopBarPage page) =>
       nativeTopBarActive.value && _activeTopBarPage == page;
 
-  static void setNativeTopActionHandler(
+  static HarmonyNativeTopActionRegistration setNativeTopActionHandler(
     HarmonyTopBarPage page,
-    void Function(HarmonyNativeTopAction action)? handler,
+    HarmonyNativeTopActionHandler handler,
   ) {
-    if (handler == null) {
-      _topActionHandlers.remove(page);
-    } else {
-      _topActionHandlers[page] = handler;
+    _topActionHandlers[page] = handler;
+    return HarmonyNativeTopActionRegistration._(page, handler);
+  }
+
+  static void clearNativeTopActionHandler(
+    HarmonyNativeTopActionRegistration registration,
+  ) {
+    if (_topActionHandlers[registration.page] == registration.handler) {
+      _topActionHandlers.remove(registration.page);
     }
+  }
+
+  static void _dispatchNativeTopAction(
+    HarmonyTopBarPage page,
+    HarmonyNativeTopAction action,
+  ) {
+    final handler = _topActionHandlers[page];
+    if (handler != null) {
+      handler(action);
+      return;
+    }
+    var retries = 3;
+    void retry() {
+      final current = _topActionHandlers[page];
+      if (current != null) {
+        current(action);
+      } else if (retries-- > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => retry());
+      }
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => retry());
   }
 
   /// Synchronously stages the latest toolbar state for one main tab.

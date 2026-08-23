@@ -84,13 +84,14 @@ class _SearchResultContent extends ConsumerStatefulWidget {
 
 class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
   final ScrollController _scrollController = ScrollController();
+  HarmonyNativeTopActionRegistration? _nativeTopActionRegistration;
   bool _sortDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
     HarmonyChannel.nativeTopBarActive.addListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(
+    _nativeTopActionRegistration = HarmonyChannel.setNativeTopActionHandler(
       HarmonyTopBarPage.searchResult,
       _handleNativeTopAction,
     );
@@ -114,10 +115,7 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
   @override
   void dispose() {
     HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(
-      HarmonyTopBarPage.searchResult,
-      null,
-    );
+    _nativeTopActionRegistration?.dispose();
     _scrollController.dispose();
     super.dispose();
   }

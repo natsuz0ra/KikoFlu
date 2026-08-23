@@ -12,6 +12,7 @@ class SnackBarUtil {
     SnackBar snackBar, {
     ScaffoldMessengerState? fallbackMessenger,
     void Function(Object error, StackTrace stackTrace)? onError,
+    double? dockGap,
   }) {
     try {
       final message = _extractMessage(snackBar.content);
@@ -23,6 +24,7 @@ class SnackBarUtil {
             context,
             snackBar,
             dockExtent: LiquidGlassDockScope.extentOf(context),
+            dockGap: dockGap,
           ),
         );
         return;
@@ -34,13 +36,13 @@ class SnackBarUtil {
 
       if (backgroundColor == Colors.red ||
           backgroundColor == colorScheme.error) {
-        showError(context, message, duration: duration);
+        showError(context, message, duration: duration, dockGap: dockGap);
       } else if (backgroundColor == Colors.green) {
-        showSuccess(context, message, duration: duration);
+        showSuccess(context, message, duration: duration, dockGap: dockGap);
       } else if (backgroundColor == Colors.orange) {
-        showWarning(context, message, duration: duration);
+        showWarning(context, message, duration: duration, dockGap: dockGap);
       } else {
-        showInfo(context, message, duration: duration);
+        showInfo(context, message, duration: duration, dockGap: dockGap);
       }
     } catch (error, stackTrace) {
       onError?.call(error, stackTrace);
@@ -51,6 +53,7 @@ class SnackBarUtil {
     BuildContext context,
     SnackBar snackBar, {
     required double dockExtent,
+    double? dockGap,
   }) {
     if (dockExtent <= 0) return snackBar;
 
@@ -76,7 +79,9 @@ class SnackBarUtil {
       backgroundColor: snackBar.backgroundColor,
       elevation: snackBar.elevation,
       margin: resolvedMargin.copyWith(
-        bottom: resolvedMargin.bottom + dockExtent,
+        bottom: dockGap == null
+            ? resolvedMargin.bottom + dockExtent
+            : dockExtent + dockGap,
       ),
       padding: snackBar.padding,
       shape: snackBar.shape,
@@ -95,12 +100,17 @@ class SnackBarUtil {
     );
   }
 
-  static void _show(BuildContext context, SnackBar snackBar) {
+  static void _show(
+    BuildContext context,
+    SnackBar snackBar, {
+    double? dockGap,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       _withDockMargin(
         context,
         snackBar,
         dockExtent: LiquidGlassDockScope.extentOf(context),
+        dockGap: dockGap,
       ),
     );
   }
@@ -130,6 +140,7 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 2),
+    double? dockGap,
   }) {
     _show(
       context,
@@ -156,6 +167,7 @@ class SnackBarUtil {
         backgroundColor: Theme.of(context).colorScheme.primary,
         duration: duration,
       ),
+      dockGap: dockGap,
     );
   }
 
@@ -164,6 +176,7 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 4),
+    double? dockGap,
   }) {
     _show(
       context,
@@ -190,6 +203,7 @@ class SnackBarUtil {
         backgroundColor: Theme.of(context).colorScheme.error,
         duration: duration,
       ),
+      dockGap: dockGap,
     );
   }
 
@@ -198,6 +212,7 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 3),
+    double? dockGap,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     // 使用 tertiary 或 secondary 作为警告色
@@ -229,6 +244,7 @@ class SnackBarUtil {
         backgroundColor: warningColor,
         duration: duration,
       ),
+      dockGap: dockGap,
     );
   }
 
@@ -237,6 +253,7 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 2),
+    double? dockGap,
   }) {
     _show(
       context,
@@ -263,6 +280,7 @@ class SnackBarUtil {
         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
         duration: duration,
       ),
+      dockGap: dockGap,
     );
   }
 

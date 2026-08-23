@@ -2,6 +2,7 @@ import { uiMaterial } from '@kit.ArkUI';
 
 export function immersiveMaterial(): uiMaterial.ImmersiveMaterial {
   return new uiMaterial.ImmersiveMaterial({
+    // Keep the native immersive material and its pressed light feedback.
     style: uiMaterial.ImmersiveStyle.ULTRA_THIN,
     interactive: true,
     lightEffect: {}

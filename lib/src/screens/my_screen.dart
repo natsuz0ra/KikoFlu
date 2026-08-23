@@ -48,6 +48,7 @@ class MyScreen extends ConsumerStatefulWidget {
 class _MyScreenState extends ConsumerState<MyScreen>
     with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
+  HarmonyNativeTopActionRegistration? _nativeTopActionRegistration;
   late TabController _tabController;
   final ValueNotifier<bool> _tabSwitcherVisible = ValueNotifier(true);
   bool _sortDialogOpen = false;
@@ -155,7 +156,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
   void initState() {
     super.initState();
     HarmonyChannel.nativeTopBarActive.addListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(
+    _nativeTopActionRegistration = HarmonyChannel.setNativeTopActionHandler(
       HarmonyTopBarPage.my,
       _handleNativeTopAction,
     );
@@ -177,7 +178,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
   @override
   void dispose() {
     HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(HarmonyTopBarPage.my, null);
+    _nativeTopActionRegistration?.dispose();
     _tabController.removeListener(_handleTabChanged);
     _tabSwitcherVisible.removeListener(_handleTopVisibilityChanged);
     _tabController.dispose();

@@ -21,6 +21,7 @@ import '../providers/floating_lyric_provider.dart';
 import '../services/cache_service.dart';
 import '../services/translation_service.dart';
 import '../utils/snackbar_util.dart';
+import '../platform/harmony_native_overlay.dart';
 import '../widgets/scrollable_appbar.dart';
 import '../widgets/download_fab.dart';
 import '../widgets/radio_option_group.dart';
@@ -35,6 +36,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  static const double _nativeDockPromptGap = 2;
   String _cacheSize = '';
   bool _isUpdatingCacheSize = false;
   ScaffoldMessengerState? _scaffoldMessenger;
@@ -72,6 +74,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context,
       snackBar,
       fallbackMessenger: _scaffoldMessenger,
+      dockGap: _nativeDockPromptGap,
     );
   }
 
@@ -385,7 +388,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showLanguagePicker(BuildContext context, WidgetRef ref) {
+  Future<void> _showLanguagePicker(BuildContext context, WidgetRef ref) async {
     final currentLocale = ref.read(localeProvider);
     final options = <(String, Locale?)>[
       (S.of(context).languageSystem, null),
@@ -402,9 +405,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         option.$2?.languageCode == currentLocale?.languageCode &&
         option.$2?.scriptCode == currentLocale?.scriptCode);
 
-    showDialog(
-      context: context,
-      builder: (context) => SimpleDialog(
+    await showWithNativeShellSuppressed<void>(
+      context,
+      () => showDialog<void>(
+        context: context,
+        builder: (context) => SimpleDialog(
         title: Text(S.of(context).settingsLanguage),
         children: [
           RadioOptionGroup<int>(
@@ -422,6 +427,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
         ],
+        ),
       ),
     );
   }
@@ -695,9 +701,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (!mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (context) {
+    await showWithNativeShellSuppressed<void>(
+      context,
+      () => showDialog<void>(
+        context: context,
+        builder: (context) {
         // 使用独立的状态变量控制滑动条
         int tempLimit = currentLimit;
 
@@ -1157,7 +1165,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         );
-      },
+        },
+      ),
     );
   }
 }

@@ -130,6 +130,7 @@ export default class HarmonyChannel implements FlutterPlugin {
         AppStorage.setOrCreate('shellSelectedColor', call.argument('selectedColor') ?? '#ff1677ff');
         AppStorage.setOrCreate('shellSelectedContainerColor', call.argument('selectedContainerColor') ?? '#241677ff');
         AppStorage.setOrCreate('shellUnselectedColor', call.argument('unselectedColor') ?? '#ff6b7280');
+        AppStorage.setOrCreate('shellIsDark', call.argument('isDark') ?? false);
         AppStorage.setOrCreate('topMaskStrongColor', call.argument('topMaskStrongColor') ?? '#cceff1f5');
         AppStorage.setOrCreate('topMaskWeakColor', call.argument('topMaskWeakColor') ?? '#24eff1f5');
         result.success(true);

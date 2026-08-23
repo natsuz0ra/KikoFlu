@@ -144,8 +144,8 @@ void main() {
       (tester) async {
     final withDock = await _showOverscrollPrompt(tester, bottomInset: 96);
     expect(withDock.$1.bottom, 96);
-    expect(withDock.$2.alignment, Alignment.bottomCenter);
-    expect(withDock.$2.padding, const EdgeInsets.only(bottom: 8));
+    expect(withDock.$2.alignment, Alignment.center);
+    expect(withDock.$2.padding, isNull);
 
     final withoutDock = await _showOverscrollPrompt(tester, bottomInset: 0);
     expect(withoutDock.$1.bottom, 0);

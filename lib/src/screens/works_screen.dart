@@ -35,6 +35,7 @@ class WorksScreen extends ConsumerStatefulWidget {
 class _WorksScreenState extends ConsumerState<WorksScreen>
     with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
+  HarmonyNativeTopActionRegistration? _nativeTopActionRegistration;
 
   int _slideDirection = 0;
   bool _sortDialogOpen = false;
@@ -49,7 +50,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
   void initState() {
     super.initState();
     HarmonyChannel.nativeTopBarActive.addListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(
+    _nativeTopActionRegistration = HarmonyChannel.setNativeTopActionHandler(
       HarmonyTopBarPage.works,
       _handleNativeTopAction,
     );
@@ -65,7 +66,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
   @override
   void dispose() {
     HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(HarmonyTopBarPage.works, null);
+    _nativeTopActionRegistration?.dispose();
     _scrollController.dispose();
     super.dispose();
   }

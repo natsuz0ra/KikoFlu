@@ -61,6 +61,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen>
     with AutomaticKeepAliveClientMixin {
+  HarmonyNativeTopActionRegistration? _nativeTopActionRegistration;
   final _searchController = TextEditingController();
   final _conditionsScrollController = ScrollController(); // 用于搜索条件横向滚动
   final List<SearchCondition> _searchConditions = [];
@@ -85,7 +86,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   void initState() {
     super.initState();
     HarmonyChannel.nativeTopBarActive.addListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(
+    _nativeTopActionRegistration = HarmonyChannel.setNativeTopActionHandler(
       HarmonyTopBarPage.search,
       _handleNativeTopAction,
     );
@@ -95,7 +96,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   @override
   void dispose() {
     HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
-    HarmonyChannel.setNativeTopActionHandler(HarmonyTopBarPage.search, null);
+    _nativeTopActionRegistration?.dispose();
     _conditionsScrollController.dispose();
     _searchController.dispose();
     if (searchInputFocused.value) searchInputFocused.value = false;
