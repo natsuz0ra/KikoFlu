@@ -6,18 +6,30 @@ import '../utils/work_cover_prefetch.dart';
 import '../utils/scroll_optimization.dart';
 import '../widgets/history_work_card.dart';
 import '../widgets/virtualized_sliver_collection.dart';
+import '../widgets/navigation_tab_reselect.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import '../../l10n/app_localizations.dart';
 
-class HistoryScreen extends ConsumerWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({
     super.key,
     this.topInset = 0,
+    this.reselectController,
   });
 
   final double topInset;
+  final NavigationTabReselectController? reselectController;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  final VirtualizedCollectionController _collectionController =
+      VirtualizedCollectionController();
+
+  @override
+  Widget build(BuildContext context) {
     final historyState = ref.watch(historyProvider);
     final history = historyState.records;
     final auth = ref.watch(authProvider.select(
@@ -26,9 +38,10 @@ class HistoryScreen extends ConsumerWidget {
     final crossAxisCount =
         (MediaQuery.sizeOf(context).width / 210).ceil().clamp(1, 8);
 
-    return Scaffold(
+    Widget result = Scaffold(
       backgroundColor: Colors.transparent,
       body: VirtualizedSliverCollection(
+        collectionController: _collectionController,
         items: history,
         itemId: (record) => record.work.id,
         layout: VirtualizedCollectionLayout.grid,
@@ -60,8 +73,8 @@ class HistoryScreen extends ConsumerWidget {
           scrollToTop: false,
         ),
         sliversBefore: [
-          if (topInset > 0)
-            SliverToBoxAdapter(child: SizedBox(height: topInset)),
+          if (widget.topInset > 0)
+            SliverToBoxAdapter(child: SizedBox(height: widget.topInset)),
         ],
         onPrefetch: (records) => prefetchWorkCovers(
           context,
@@ -104,7 +117,18 @@ class HistoryScreen extends ConsumerWidget {
               child: const Icon(Icons.delete_outline),
             )
           : null,
-    );
+    ).scrollToTopOnStatusBar(_collectionController);
+    final reselectController = widget.reselectController;
+    if (reselectController != null) {
+      result = result.onNavigationTabReselect(
+        controller: reselectController,
+        onReselect: () => _collectionController.scrollToTop(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
+    return result;
   }
 
   Future<void> _showClearConfirmation(

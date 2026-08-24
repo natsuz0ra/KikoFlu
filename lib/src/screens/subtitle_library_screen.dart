@@ -23,6 +23,9 @@ import '../utils/subtitle_library_display.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/responsive_dialog.dart';
 import '../widgets/floating_feed_toolbar.dart';
+import '../widgets/navigation_tab_reselect.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/virtualized_sliver_collection.dart';
 
 /// 字幕库界面
 class SubtitleLibraryScreen extends ConsumerStatefulWidget {
@@ -31,11 +34,13 @@ class SubtitleLibraryScreen extends ConsumerStatefulWidget {
     this.toolbarTop = 8,
     this.collapsedToolbarTop,
     this.primaryToolbarVisible,
+    this.reselectController,
   });
 
   final double toolbarTop;
   final double? collapsedToolbarTop;
   final ValueListenable<bool>? primaryToolbarVisible;
+  final NavigationTabReselectController? reselectController;
 
   @override
   ConsumerState<SubtitleLibraryScreen> createState() =>
@@ -50,6 +55,8 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
   bool _isSelectionMode = false;
   final Set<String> _selectedPaths = {}; // 选中的文件/文件夹路径
   StreamSubscription<void>? _cacheUpdateSubscription;
+  final VirtualizedCollectionController _collectionController =
+      VirtualizedCollectionController();
 
   // 搜索相关
   bool _isSearching = false;
@@ -725,7 +732,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
       }
     });
 
-    return PopScope(
+    Widget result = PopScope(
       canPop: _currentPath == _rootPath || _currentPath.isEmpty,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
@@ -747,6 +754,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
                 errorMessage: _errorMessage,
                 onRetry: _loadFiles,
                 child: SubtitleLibraryFileList(
+                  collectionController: _collectionController,
                   items: _isSearching
                       ? _filterFiles(_files, _searchQuery)
                       : _getCurrentFiles(),
@@ -830,7 +838,18 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
           ],
         ),
       ),
-    );
+    ).scrollToTopOnStatusBar(_collectionController);
+    final reselectController = widget.reselectController;
+    if (reselectController != null) {
+      result = result.onNavigationTabReselect(
+        controller: reselectController,
+        onReselect: () => _collectionController.scrollToTop(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
+    return result;
   }
 
   void _toggleItemSelection(

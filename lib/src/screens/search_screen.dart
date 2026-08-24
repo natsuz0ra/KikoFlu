@@ -15,6 +15,8 @@ import '../widgets/scrollable_appbar.dart';
 import '../widgets/download_fab.dart';
 import '../widgets/floating_feed_toolbar.dart';
 import '../widgets/liquid_glass_layout.dart';
+import '../widgets/navigation_tab_reselect.dart';
+import '../widgets/status_bar_scroll_to_top.dart';
 import 'search_result_screen.dart';
 
 // 搜索条件项
@@ -49,7 +51,9 @@ class SearchCondition {
 }
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.reselectController});
+
+  final NavigationTabReselectController? reselectController;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -58,6 +62,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen>
     with AutomaticKeepAliveClientMixin {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   final _conditionsScrollController = ScrollController(); // 用于搜索条件横向滚动
   final List<SearchCondition> _searchConditions = [];
   Key _autocompleteKey = UniqueKey(); // 用于强制刷新 Autocomplete
@@ -89,9 +94,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   @override
   void dispose() {
     _conditionsScrollController.dispose();
+    _scrollController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.minScrollExtent,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   // 加载建议数据
@@ -294,7 +309,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
     final dockExtent = LiquidGlassDockScope.extentOf(context);
-    return GestureDetector(
+    Widget result = GestureDetector(
       // 点击任何地方（包括 AppBar）都取消焦点，关闭下拉框
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -344,6 +359,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                     Expanded(
                       flex: 8,
                       child: SingleChildScrollView(
+                        controller: _scrollController,
                         child: Container(
                           padding: EdgeInsets.fromLTRB(
                             _showAdvancedFilters ? 8 : 16,
@@ -363,6 +379,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 ),
               )
             : SingleChildScrollView(
+                controller: _scrollController,
                 child: Container(
                   padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + dockExtent),
                   color: theme.colorScheme.surface,
@@ -374,6 +391,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               ),
       ), // Scaffold 的闭合
     ); // GestureDetector 的闭合
+
+    result = result.scrollToTopOnStatusBar(_scrollController);
+    final reselectController = widget.reselectController;
+    if (reselectController != null) {
+      result = result.onNavigationTabReselect(
+        controller: reselectController,
+        onReselect: _scrollToTop,
+      );
+    }
+    return result;
   }
 
   Widget _buildAdvancedFiltersSidebar(ThemeData theme) {

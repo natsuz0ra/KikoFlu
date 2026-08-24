@@ -22,6 +22,7 @@ import '../widgets/privacy_blur_cover.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
 import '../widgets/virtualized_sliver_collection.dart';
 import '../widgets/floating_feed_toolbar.dart';
+import '../widgets/navigation_tab_reselect.dart';
 
 final _log = LogService.instance;
 
@@ -32,11 +33,13 @@ class LocalDownloadsScreen extends ConsumerStatefulWidget {
     this.toolbarTop = 8,
     this.collapsedToolbarTop,
     this.primaryToolbarVisible,
+    this.reselectController,
   });
 
   final double toolbarTop;
   final double? collapsedToolbarTop;
   final ValueListenable<bool>? primaryToolbarVisible;
+  final NavigationTabReselectController? reselectController;
 
   @override
   ConsumerState<LocalDownloadsScreen> createState() =>
@@ -553,7 +556,7 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return StreamBuilder<List<DownloadTask>>(
+    Widget result = StreamBuilder<List<DownloadTask>>(
       stream: DownloadService.instance.tasksStream,
       initialData: DownloadService.instance.tasks,
       builder: (context, snapshot) {
@@ -696,6 +699,14 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
         );
       },
     ).scrollToTopOnStatusBar(_collectionController);
+    final reselectController = widget.reselectController;
+    if (reselectController != null) {
+      result = result.onNavigationTabReselect(
+        controller: reselectController,
+        onReselect: _scrollToTop,
+      );
+    }
+    return result;
   }
 
   Widget _buildPrimaryToolbar(Map<int, List<DownloadTask>> groupedTasks) {

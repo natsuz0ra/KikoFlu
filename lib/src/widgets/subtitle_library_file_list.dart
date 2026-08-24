@@ -31,6 +31,7 @@ class SubtitleLibraryFileList extends StatelessWidget {
     required this.onLoadSubtitle,
     required this.onShowOptions,
     this.header,
+    this.collectionController,
   });
 
   final List<Map<String, dynamic>> items;
@@ -44,6 +45,7 @@ class SubtitleLibraryFileList extends StatelessWidget {
   final ValueChanged<Map<String, dynamic>> onLoadSubtitle;
   final SubtitleLibraryFileOptions onShowOptions;
   final Widget? header;
+  final VirtualizedCollectionController? collectionController;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +53,7 @@ class SubtitleLibraryFileList extends StatelessWidget {
     _flattenItems(items, level: 0, into: entries);
 
     return VirtualizedSliverCollection<_SubtitleLibraryEntry>(
+      collectionController: collectionController,
       items: entries,
       itemId: (entry) => entry.path,
       pageStorageKey: const PageStorageKey('subtitle-library-files'),

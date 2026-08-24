@@ -42,9 +42,12 @@ class MyScreen extends ConsumerStatefulWidget {
 class _MyScreenState extends ConsumerState<MyScreen>
     with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
+  final NavigationTabReselectController _contentReselectController =
+      NavigationTabReselectController();
   late TabController _tabController;
   final ValueNotifier<bool> _tabSwitcherVisible = ValueNotifier(true);
   int _lastTabIndex = 0;
+  int _tabIndexAtPointerDown = 0;
 
   @override
   bool get wantKeepAlive => true; // 保持状态不被销毁
@@ -77,7 +80,10 @@ class _MyScreenState extends ConsumerState<MyScreen>
       title: S.of(context).historyRecord,
       icon: Icons.history,
       index: tabs.length,
-      widget: HistoryScreen(topInset: contentTop),
+      widget: HistoryScreen(
+        topInset: contentTop,
+        reselectController: _contentReselectController,
+      ),
     ));
 
     if (settings.showPlaylists && isOfficialServer) {
@@ -85,7 +91,10 @@ class _MyScreenState extends ConsumerState<MyScreen>
         title: S.of(context).playlists,
         icon: Icons.playlist_play,
         index: 1,
-        widget: PlaylistsScreen(topInset: contentTop),
+        widget: PlaylistsScreen(
+          topInset: contentTop,
+          reselectController: _contentReselectController,
+        ),
       ));
     }
 
@@ -98,6 +107,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
         toolbarTop: contentTop,
         collapsedToolbarTop: collapsedToolbarTop,
         primaryToolbarVisible: _tabSwitcherVisible,
+        reselectController: _contentReselectController,
       ),
       showFab: true,
       fabWidget: StreamBuilder<List<DownloadTask>>(
@@ -126,6 +136,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
           toolbarTop: contentTop,
           collapsedToolbarTop: collapsedToolbarTop,
           primaryToolbarVisible: _tabSwitcherVisible,
+          reselectController: _contentReselectController,
         ),
       ));
     }
@@ -155,6 +166,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
     _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
     _tabSwitcherVisible.dispose();
+    _contentReselectController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -379,8 +391,17 @@ class _MyScreenState extends ConsumerState<MyScreen>
                   child: FloatingToolbarSurface(
                     child: SizedBox(
                       height: 40,
-                      child: TabBar(
+                      child: Listener(
+                        onPointerDown: (_) {
+                          _tabIndexAtPointerDown = _tabController.index;
+                        },
+                        child: TabBar(
                         controller: _tabController,
+                        onTap: (index) {
+                          if (index == _tabIndexAtPointerDown) {
+                            _contentReselectController.reselect();
+                          }
+                        },
                         isScrollable: true,
                         tabAlignment: TabAlignment.start,
                         dividerColor: Colors.transparent,
@@ -407,6 +428,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
                               ),
                             )
                             .toList(),
+                        ),
                       ),
                     ),
                   ),
@@ -416,9 +438,9 @@ class _MyScreenState extends ConsumerState<MyScreen>
           ),
         ),
       ),
-    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
+    ).onNavigationTabReselect(
           controller: widget.reselectController,
-          onReselect: _scrollToTopAndRefresh,
+          onReselect: _contentReselectController.reselect,
         );
   }
 
@@ -490,7 +512,10 @@ class _MyScreenState extends ConsumerState<MyScreen>
           ),
         ),
       ],
-    );
+    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
+          controller: _contentReselectController,
+          onReselect: _scrollToTopAndRefresh,
+        );
   }
 
   Widget _buildBody(

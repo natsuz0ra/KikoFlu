@@ -26,6 +26,7 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
   static const int _homeTabIndex = 0;
+  static const int _searchTabIndex = 1;
   static const int _myTabIndex = 2;
   static const int _settingsTabIndex = 3;
 
@@ -33,6 +34,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   final PageStorageBucket _bucket = PageStorageBucket();
   final ValueNotifier<double> _liquidDockExtent = ValueNotifier(0);
   final _homeReselectController = NavigationTabReselectController();
+  final _searchReselectController = NavigationTabReselectController();
   final _myReselectController = NavigationTabReselectController();
 
   late final List<Widget> _screens;
@@ -45,7 +47,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         key: const PageStorageKey('works_screen'),
         reselectController: _homeReselectController,
       ),
-      const SearchScreen(key: PageStorageKey('search_screen')),
+      SearchScreen(
+        key: const PageStorageKey('search_screen'),
+        reselectController: _searchReselectController,
+      ),
       MyScreen(
         key: const PageStorageKey('my_screen'),
         reselectController: _myReselectController,
@@ -58,6 +63,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   void dispose() {
     _liquidDockExtent.dispose();
     _homeReselectController.dispose();
+    _searchReselectController.dispose();
     _myReselectController.dispose();
     super.dispose();
   }
@@ -98,6 +104,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   void _handleDestinationSelected(int index) {
     if (_currentIndex == index) {
       if (index == _homeTabIndex) _homeReselectController.reselect();
+      if (index == _searchTabIndex) _searchReselectController.reselect();
       if (index == _myTabIndex) _myReselectController.reselect();
       return;
     }

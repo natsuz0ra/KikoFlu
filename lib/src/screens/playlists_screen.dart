@@ -8,6 +8,7 @@ import '../widgets/playlist_card.dart';
 import '../widgets/virtualized_sliver_collection.dart';
 import '../utils/scroll_optimization.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
+import '../widgets/navigation_tab_reselect.dart';
 import '../models/playlist.dart' show PlaylistPrivacy;
 import 'playlist_detail_screen.dart';
 
@@ -15,9 +16,11 @@ class PlaylistsScreen extends ConsumerStatefulWidget {
   const PlaylistsScreen({
     super.key,
     this.topInset = 0,
+    this.reselectController,
   });
 
   final double topInset;
+  final NavigationTabReselectController? reselectController;
 
   @override
   ConsumerState<PlaylistsScreen> createState() => _PlaylistsScreenState();
@@ -462,7 +465,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     final state = ref.watch(playlistsProvider);
 
     if (state.error != null && state.playlists.isEmpty) {
-      return Center(
+      final content = Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -493,14 +496,17 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
           ],
         ),
       );
+      return _attachScrollToTop(content);
     }
 
     if (state.isLoading && state.playlists.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return _attachScrollToTop(
+        const Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (state.playlists.isEmpty) {
-      return Scaffold(
+      final content = Scaffold(
         floatingActionButton: FloatingActionButton(
           onPressed: _showCreatePlaylistDialog,
           tooltip: S.of(context).createPlaylist,
@@ -532,9 +538,10 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
           ),
         ),
       );
+      return _attachScrollToTop(content);
     }
 
-    return Scaffold(
+    return _attachScrollToTop(Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreatePlaylistDialog,
         tooltip: S.of(context).createPlaylist,
@@ -544,7 +551,26 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
         onRefresh: ref.read(playlistsProvider.notifier).refresh,
         child: _buildListView(state),
       ),
-    ).scrollToTopOnStatusBar(_scrollController);
+    ));
+  }
+
+  Widget _attachScrollToTop(Widget child) {
+    Widget result = child.scrollToTopOnStatusBar(_scrollController);
+    final reselectController = widget.reselectController;
+    if (reselectController != null) {
+      result = result.onNavigationTabReselect(
+        controller: reselectController,
+        onReselect: () {
+          if (!_scrollController.hasClients) return;
+          _scrollController.animateTo(
+            _scrollController.position.minScrollExtent,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutCubic,
+          );
+        },
+      );
+    }
+    return result;
   }
 
   Widget _buildListView(PlaylistsState state) {
