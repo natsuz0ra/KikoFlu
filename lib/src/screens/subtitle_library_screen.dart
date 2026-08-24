@@ -732,6 +732,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
         _navigateUp();
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         floatingActionButton: FloatingActionButton(
           onPressed: _showImportOptions,
           tooltip: S.of(context).importSubtitle,
@@ -1001,27 +1002,14 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
                 });
               },
             ),
-            SizedBox(
-              width: 160,
-              child: TextField(
-                controller: _searchController,
-                autofocus: true,
-                onChanged: (value) => setState(() => _searchQuery = value),
-                decoration: InputDecoration(
-                  hintText: S.of(context).searchSubtitles,
-                  border: InputBorder.none,
-                  isDense: true,
-                  suffixIcon: _searchQuery.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        ),
-                ),
-              ),
+            FloatingToolbarSearchField(
+              controller: _searchController,
+              hintText: S.of(context).searchSubtitles,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              onClear: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
             ),
           ],
         ),

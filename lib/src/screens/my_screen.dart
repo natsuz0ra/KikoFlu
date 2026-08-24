@@ -322,6 +322,9 @@ class _MyScreenState extends ConsumerState<MyScreen>
     return AnnotatedRegion(
       value: systemOverlayStyle,
       child: Scaffold(
+        // Search fields live in the selected child page. Keeping this shell
+        // stable avoids moving centered empty states when the IME appears.
+        resizeToAvoidBottomInset: false,
         floatingActionButton: AnimatedBuilder(
           animation: _tabController,
           builder: (context, child) {

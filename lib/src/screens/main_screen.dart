@@ -348,6 +348,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
 
     final portraitScaffold = Scaffold(
+      // The retained tab shell has no text input of its own. Child pages own
+      // keyboard avoidance so nested Scaffolds do not shrink the same empty
+      // state multiple times.
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // 主内容

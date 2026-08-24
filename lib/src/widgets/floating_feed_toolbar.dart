@@ -652,6 +652,65 @@ class _ToolButton extends StatelessWidget {
   }
 }
 
+/// A single-line search field sized to match the 40dp actions inside a
+/// [FloatingToolbarSurface]. Keeping the suffix constraints fixed prevents
+/// the capsule from growing when the clear action first appears.
+class FloatingToolbarSearchField extends StatelessWidget {
+  const FloatingToolbarSearchField({
+    super.key,
+    required this.controller,
+    required this.hintText,
+    required this.onChanged,
+    required this.onClear,
+    this.autofocus = true,
+    this.width = 160,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+  final bool autofocus;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const ValueKey('floating-toolbar-search-field'),
+      width: width,
+      height: 40,
+      child: TextField(
+        controller: controller,
+        autofocus: autofocus,
+        maxLines: 1,
+        textAlignVertical: TextAlignVertical.center,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: hintText,
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          suffixIconConstraints: const BoxConstraints.tightFor(
+            width: 40,
+            height: 40,
+          ),
+          suffixIcon: controller.text.isEmpty
+              ? const SizedBox.square(dimension: 40)
+              : IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  onPressed: onClear,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Icon-only action button for toolbars that use a custom capsule grouping.
 class FloatingToolbarIconButton extends StatelessWidget {
   const FloatingToolbarIconButton({

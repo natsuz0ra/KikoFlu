@@ -419,6 +419,66 @@ void main() {
     expect(middleLeft, greaterThan(initialLeft));
     expect(middleLeft, lessThan(finalLeft));
   });
+
+  testWidgets('toolbar search field stays single-line when clear appears', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_testApp(const _SearchFieldHarness()));
+
+    final field = find.byKey(const ValueKey('floating-toolbar-search-field'));
+    final initialHeight = tester.getSize(field).height;
+    final textField = tester.widget<TextField>(find.byType(TextField));
+
+    expect(initialHeight, 40);
+    expect(textField.maxLines, 1);
+    expect(textField.decoration?.suffixIcon, isNotNull);
+    expect(find.byIcon(Icons.clear), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'subtitle');
+    await tester.pump();
+
+    expect(find.byIcon(Icons.clear), findsOneWidget);
+    expect(tester.getSize(field).height, initialHeight);
+
+    await tester.tap(find.byIcon(Icons.clear));
+    await tester.pump();
+
+    expect(find.byIcon(Icons.clear), findsNothing);
+    expect(tester.getSize(field).height, initialHeight);
+  });
+}
+
+class _SearchFieldHarness extends StatefulWidget {
+  const _SearchFieldHarness();
+
+  @override
+  State<_SearchFieldHarness> createState() => _SearchFieldHarnessState();
+}
+
+class _SearchFieldHarnessState extends State<_SearchFieldHarness> {
+  final controller = TextEditingController();
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingToolbarSurface(
+      child: FloatingToolbarSearchField(
+        controller: controller,
+        hintText: 'Search',
+        autofocus: false,
+        onChanged: (_) => setState(() {}),
+        onClear: () {
+          controller.clear();
+          setState(() {});
+        },
+      ),
+    );
+  }
 }
 
 class _ScrollableModeSelector extends StatefulWidget {

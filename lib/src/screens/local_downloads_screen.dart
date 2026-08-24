@@ -752,33 +752,20 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
               tooltip: S.of(context).close,
               onPressed: _toggleSearch,
             ),
-            SizedBox(
-              width: 160,
-              child: TextField(
-                controller: _searchController,
-                autofocus: true,
-                onChanged: (value) => setState(() {
-                  _searchQuery = value;
+            FloatingToolbarSearchField(
+              controller: _searchController,
+              hintText: S.of(context).searchDownloads,
+              onChanged: (value) => setState(() {
+                _searchQuery = value;
+                _currentPage = 1;
+              }),
+              onClear: () {
+                _searchController.clear();
+                setState(() {
+                  _searchQuery = '';
                   _currentPage = 1;
-                }),
-                decoration: InputDecoration(
-                  hintText: S.of(context).searchDownloads,
-                  border: InputBorder.none,
-                  isDense: true,
-                  suffixIcon: _searchQuery.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                              _currentPage = 1;
-                            });
-                          },
-                        ),
-                ),
-              ),
+                });
+              },
             ),
           ],
         ),
