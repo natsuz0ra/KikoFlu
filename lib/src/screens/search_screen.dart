@@ -482,17 +482,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       ],
       FloatingToolbarSurface(
         padding: const EdgeInsets.all(4),
-        child: SizedBox(
-          height: 48,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: SearchType.values
-                  .map((type) => _buildSearchTypeButton(type, theme))
-                  .toList(),
-            ),
-          ),
+        child: FloatingFeedModeSelector(
+          scrollable: true,
+          actions: [
+            for (final type in SearchType.values)
+              _buildSearchTypeAction(type),
+          ],
         ),
       ),
       if (_currentSearchType == SearchType.tag ||
@@ -811,82 +806,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     }
   }
 
-  Widget _buildSearchTypeButton(SearchType type, ThemeData theme) {
+  FloatingFeedModeAction _buildSearchTypeAction(SearchType type) {
     final supportsExclude = type == SearchType.tag ||
         type == SearchType.va ||
         type == SearchType.circle;
     final isCurrentType = _currentSearchType == type;
     final isExcluded = isCurrentType && _isExcludeMode && supportsExclude;
-    final colors = theme.colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Semantics(
-        selected: isCurrentType,
-        button: true,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () {
-              setState(() {
-                if (isCurrentType && supportsExclude) {
-                  _isExcludeMode = !_isExcludeMode;
-                } else {
-                  _currentSearchType = type;
-                  _isExcludeMode = false;
-                  _searchController.clear();
-                  _autocompleteKey = UniqueKey();
-                  if (supportsExclude) {
-                    _loadSuggestions();
-                  }
-                }
-              });
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: isCurrentType
-                    ? (isExcluded
-                        ? colors.errorContainer
-                        : colors.primaryContainer)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isCurrentType) ...[
-                    Icon(
-                      isExcluded ? Icons.remove_circle_outline : Icons.check,
-                      size: 18,
-                      color: isExcluded
-                          ? colors.onErrorContainer
-                          : colors.primary,
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  Text(
-                    type.localizedLabel(context),
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: isCurrentType
-                          ? (isExcluded
-                              ? colors.onErrorContainer
-                              : colors.primary)
-                          : colors.onSurfaceVariant,
-                      fontWeight:
-                          isCurrentType ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+    return FloatingFeedModeAction(
+      icon: isExcluded
+          ? Icons.remove_circle_outline
+          : _getSearchTypeIcon(type),
+      label: type.localizedLabel(context),
+      isSelected: isCurrentType,
+      isErrorSelected: isExcluded,
+      onPressed: () {
+        setState(() {
+          if (isCurrentType && supportsExclude) {
+            _isExcludeMode = !_isExcludeMode;
+          } else {
+            _currentSearchType = type;
+            _isExcludeMode = false;
+            _searchController.clear();
+            _autocompleteKey = UniqueKey();
+            if (supportsExclude) {
+              _loadSuggestions();
+            }
+          }
+        });
+      },
     );
   }
 

@@ -398,6 +398,56 @@ void main() {
     expect(middleLeft, lessThan(finalLeft));
     expect(finalLeft - initialLeft, greaterThan(100));
   });
+
+  testWidgets('scrollable mode selector shares the sliding transition', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_testApp(const _ScrollableModeSelector()));
+
+    final indicator = find.byKey(const ValueKey('feed-mode-indicator'));
+    final initialLeft = tester.getTopLeft(indicator).dx;
+
+    await tester.tap(find.text('声优'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 90));
+    final middleLeft = tester.getTopLeft(indicator).dx;
+
+    await tester.pumpAndSettle();
+    final finalLeft = tester.getTopLeft(indicator).dx;
+
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(middleLeft, greaterThan(initialLeft));
+    expect(middleLeft, lessThan(finalLeft));
+  });
+}
+
+class _ScrollableModeSelector extends StatefulWidget {
+  const _ScrollableModeSelector();
+
+  @override
+  State<_ScrollableModeSelector> createState() =>
+      _ScrollableModeSelectorState();
+}
+
+class _ScrollableModeSelectorState extends State<_ScrollableModeSelector> {
+  int selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['关键词', '标签', '声优', '社团', 'RJ号'];
+    return FloatingFeedModeSelector(
+      scrollable: true,
+      actions: [
+        for (var index = 0; index < labels.length; index++)
+          FloatingFeedModeAction(
+            icon: Icons.search,
+            label: labels[index],
+            isSelected: selectedIndex == index,
+            onPressed: () => setState(() => selectedIndex = index),
+          ),
+      ],
+    );
+  }
 }
 
 class _SelectableModeToolbar extends StatefulWidget {

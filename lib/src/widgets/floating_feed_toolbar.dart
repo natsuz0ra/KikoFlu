@@ -15,12 +15,14 @@ class FloatingFeedModeAction {
     required this.label,
     required this.isSelected,
     required this.onPressed,
+    this.isErrorSelected = false,
   });
 
   final IconData icon;
   final String label;
   final bool isSelected;
   final VoidCallback onPressed;
+  final bool isErrorSelected;
 }
 
 class FloatingFeedToolAction {
@@ -80,7 +82,7 @@ class FloatingFeedToolbar extends StatelessWidget {
               modeActions.fold<double>(
                 0,
                 (width, action) =>
-                    width + _modeActionWidth(context, action.label),
+                    width + _measureModeActionWidth(context, action.label),
               );
           final modesOverflow = requiredModeWidth > availableModeWidth;
           final useDropdown = collapseModesWhenNeeded && modesOverflow;
@@ -98,13 +100,13 @@ class FloatingFeedToolbar extends StatelessWidget {
               ? availableModeWidth - surfacePadding
               : availableModeWidth;
           final desiredDropdownWidth =
-              _modeActionWidth(context, selectedAction.label) + 24;
+              _measureModeActionWidth(context, selectedAction.label) + 24;
           final dropdownWidth = desiredDropdownWidth < maxDropdownWidth
               ? desiredDropdownWidth
               : maxDropdownWidth;
 
           final modeRow = fillAvailableWidth
-              ? _SlidingModeRow(actions: modeActions)
+              ? FloatingFeedModeSelector(actions: modeActions)
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -145,20 +147,86 @@ class FloatingFeedToolbar extends StatelessWidget {
       ),
     );
   }
+}
 
-  double _modeActionWidth(BuildContext context, String label) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+double _measureModeActionWidth(BuildContext context, String label) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: label,
+      style: Theme.of(
+        context,
+      ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  return 24 + 18 + 6 + painter.width;
+}
+
+/// A capsule mode selector with the same sliding selection transition used by
+/// the home feed. When [scrollable] is true, every option keeps its natural
+/// width so longer localized labels remain reachable without resizing when
+/// the selection changes.
+class FloatingFeedModeSelector extends StatelessWidget {
+  const FloatingFeedModeSelector({
+    super.key,
+    required this.actions,
+    this.scrollable = false,
+  }) : assert(actions.length > 0);
+
+  final List<FloatingFeedModeAction> actions;
+  final bool scrollable;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!scrollable) {
+      return _SlidingModeRow(actions: actions);
+    }
+
+    final widths = [
+      for (final action in actions)
+        _measureModeActionWidth(context, action.label),
+    ];
+    final selectedIndex = actions.indexWhere((action) => action.isSelected);
+    final effectiveIndex = selectedIndex < 0 ? 0 : selectedIndex;
+    final indicatorLeft = widths
+        .take(effectiveIndex)
+        .fold<double>(0, (sum, width) => sum + width);
+    final totalWidth = widths.fold<double>(0, (sum, width) => sum + width);
+
+    return SizedBox(
+      height: 40,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: totalWidth,
+          height: 40,
+          child: Stack(
+            children: [
+              _SlidingModeIndicator(
+                action: actions[effectiveIndex],
+                left: indicatorLeft,
+                width: widths[effectiveIndex],
+              ),
+              Row(
+                children: [
+                  for (var index = 0; index < actions.length; index++)
+                    SizedBox(
+                      width: widths[index],
+                      child: _ModeButton(
+                        action: actions[index],
+                        fitAvailableWidth: true,
+                        showSelectionBackground: false,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-    return 24 + 18 + 6 + painter.width;
+    );
   }
 }
 
@@ -423,6 +491,9 @@ class _ModeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final selectedForeground = action.isErrorSelected
+        ? colorScheme.onErrorContainer
+        : colorScheme.primary;
     return Semantics(
       selected: action.isSelected,
       button: true,
@@ -438,7 +509,9 @@ class _ModeButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: showSelectionBackground && action.isSelected
-                  ? colorScheme.primaryContainer
+                  ? (action.isErrorSelected
+                        ? colorScheme.errorContainer
+                        : colorScheme.primaryContainer)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(20),
             ),
@@ -447,7 +520,7 @@ class _ModeButton extends StatelessWidget {
               curve: Curves.easeOutCubic,
               tween: ColorTween(
                 end: action.isSelected
-                    ? colorScheme.primary
+                    ? selectedForeground
                     : colorScheme.onSurfaceVariant,
               ),
               builder: (context, foregroundColor, child) => Row(
@@ -490,7 +563,6 @@ class _SlidingModeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final selectedIndex = actions.indexWhere((action) => action.isSelected);
     final effectiveIndex = selectedIndex < 0 ? 0 : selectedIndex;
 
@@ -501,22 +573,10 @@ class _SlidingModeRow extends StatelessWidget {
           final itemWidth = constraints.maxWidth / actions.length;
           return Stack(
             children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
+              _SlidingModeIndicator(
+                action: actions[effectiveIndex],
                 left: itemWidth * effectiveIndex,
-                top: 0,
                 width: itemWidth,
-                height: 40,
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    key: const ValueKey('feed-mode-indicator'),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
               ),
               Row(
                 children: [
@@ -533,6 +593,44 @@ class _SlidingModeRow extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _SlidingModeIndicator extends StatelessWidget {
+  const _SlidingModeIndicator({
+    required this.action,
+    required this.left,
+    required this.width,
+  });
+
+  final FloatingFeedModeAction action;
+  final double left;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      left: left,
+      top: 0,
+      width: width,
+      height: 40,
+      child: IgnorePointer(
+        child: AnimatedContainer(
+          key: const ValueKey('feed-mode-indicator'),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: action.isErrorSelected
+                ? colorScheme.errorContainer
+                : colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
       ),
     );
   }
