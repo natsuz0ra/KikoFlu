@@ -234,6 +234,9 @@ class _ModeDropdown extends StatelessWidget {
 class FloatingToolbarLayout {
   const FloatingToolbarLayout._();
 
+  /// RefreshIndicator settles this far below the floating toolbar's bottom.
+  static const double refreshIndicatorDisplacement = 16;
+
   static double horizontalPadding(BuildContext context) {
     return MediaQuery.of(context).orientation == Orientation.landscape
         ? 24.0

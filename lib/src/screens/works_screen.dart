@@ -249,6 +249,8 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
                         horizontalPadding,
                       ),
                       refreshIndicatorEdgeOffset: contentTopPadding,
+                      refreshIndicatorDisplacement:
+                          FloatingToolbarLayout.refreshIndicatorDisplacement,
                     ),
                   ),
                 ),
@@ -343,11 +345,13 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     WorksState worksState,
     EdgeInsetsGeometry padding, {
     double refreshIndicatorEdgeOffset = 0,
+    double refreshIndicatorDisplacement = 40,
   }) {
     return _buildLayoutView(
       worksState,
       padding,
       refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
+      refreshIndicatorDisplacement: refreshIndicatorDisplacement,
     );
   }
 
@@ -355,6 +359,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     WorksState worksState,
     EdgeInsetsGeometry padding, {
     required double refreshIndicatorEdgeOffset,
+    required double refreshIndicatorDisplacement,
   }) {
     final notifier = ref.read(worksProvider.notifier);
     return WorksGridView(
@@ -374,6 +379,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
       onRetry: notifier.refresh,
       onRefresh: worksState.works.isEmpty ? null : notifier.refresh,
       refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
+      refreshIndicatorDisplacement: refreshIndicatorDisplacement,
       pagination: worksState.displayMode == DisplayMode.all
           ? VirtualizedPagination(
               currentPage: worksState.currentPage,

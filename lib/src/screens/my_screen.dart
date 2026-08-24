@@ -439,6 +439,8 @@ class _MyScreenState extends ConsumerState<MyScreen>
                 state,
                 topPadding: toolbarTop + 56,
                 refreshIndicatorEdgeOffset: activeToolbarTop + 56,
+                refreshIndicatorDisplacement:
+                    FloatingToolbarLayout.refreshIndicatorDisplacement,
               );
             },
           ),
@@ -492,6 +494,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
     MyReviewsState state, {
     double topPadding = 0,
     double refreshIndicatorEdgeOffset = 0,
+    double refreshIndicatorDisplacement = 40,
   }) {
     if (state.error != null) {
       return Center(
@@ -551,6 +554,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
       onRetry: () => ref.read(myReviewsProvider.notifier).refresh(),
       onRefresh: () => ref.read(myReviewsProvider.notifier).refresh(),
       refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
+      refreshIndicatorDisplacement: refreshIndicatorDisplacement,
       pagination: VirtualizedPagination(
         currentPage: state.currentPage,
         pageSize: state.layoutType == MyReviewLayoutType.list
