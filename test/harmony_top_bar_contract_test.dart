@@ -44,17 +44,15 @@ void main() {
     expect(colors.topMaskWeak, startsWith('#10'));
   });
 
-  test('keeps native light feedback enabled for dark-mode pressed capsules', () {
-    final model = File(
-      'ohos/entry/src/main/ets/immersive/ImmersiveTopBarModel.ets',
-    ).readAsStringSync();
+  test('keeps HDS immersive light feedback enabled for top capsules', () {
     final topBar = File(
       'ohos/entry/src/main/ets/immersive/ImmersiveTopBar.ets',
     ).readAsStringSync();
 
-    expect(model, contains('style: uiMaterial.ImmersiveStyle.ULTRA_THIN'));
-    expect(model, contains('lightEffect: {}'));
-    expect(topBar, contains('.systemMaterial(immersiveMaterial())'));
+    expect(topBar, contains("import { hdsMaterial, HdsTabs }"));
+    expect(topBar, contains('hdsMaterial.MaterialType.IMMERSIVE'));
+    expect(topBar, contains('hdsMaterial.MaterialLevel.EXQUISITE'));
+    expect(topBar, contains('struct HdsImmersiveCapsuleMaterial'));
   });
 
   test('routes every native top action through the attached channel', () {
@@ -84,11 +82,32 @@ void main() {
     expect(topBar, contains('this.emit(action);'));
     expect(
       topBar,
+      contains('this.emitValue(this.secondaryInputAction, value)'),
+    );
+    expect(
+      topBar,
       contains('this.runToolAction(this.secondaryToolActions[index])'),
     );
     expect(topBar, isNot(contains('.eventHub.emit(')));
     expect(ability, isNot(contains('EVENT_NATIVE_TOP_ACTION')));
     expect(ability, isNot(contains('nativeTopActionCallback')));
+  });
+
+  test('keeps downloaded and subtitle secondary actions page-owned', () {
+    final my = File('lib/src/screens/my_screen.dart').readAsStringSync();
+    final downloads = File(
+      'lib/src/screens/local_downloads_screen.dart',
+    ).readAsStringSync();
+    final subtitles = File(
+      'lib/src/screens/subtitle_library_screen.dart',
+    ).readAsStringSync();
+
+    expect(my, contains('secondaryToolbarController:'));
+    expect(my, contains('collapsed: !_tabSwitcherVisible.value'));
+    expect(downloads, contains("case 'downloads_search_query':"));
+    expect(downloads, contains("case 'downloads_sort':"));
+    expect(subtitles, contains("case 'subtitles_search_query':"));
+    expect(subtitles, contains("case 'subtitles_info':"));
   });
 
   test('keeps all Flutter top action owners and actions registered', () {

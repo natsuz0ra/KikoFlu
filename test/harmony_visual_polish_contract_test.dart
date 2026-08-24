@@ -10,7 +10,9 @@ void main() {
         'ohos/entry/src/main/ets/immersive/ImmersiveTopBar.ets',
       ).readAsStringSync();
 
-      expect(source, contains('.linearGradient({'));
+      expect(source, contains('HdsImmersiveCapsuleMaterial'));
+      expect(source, contains('hdsMaterial.MaterialType.IMMERSIVE'));
+      expect(source, isNot(contains('.linearGradient({')));
       expect(source, isNot(contains('.linearGradientBlur(')));
       expect(source, contains('const SECONDARY_FILTER_MIN_WIDTH = 104;'));
       expect(source, contains('const SECONDARY_FILTER_MAX_WIDTH = 152;'));
@@ -71,6 +73,7 @@ void main() {
     );
     expect(miniPlayer, contains('fallbackIntensity: 0.86'));
     expect(mainScreen, contains('MediaQuery.viewInsetsOf(context).bottom > 0'));
+    expect(mainScreen, contains('if (keyboardVisible)'));
     expect(mainScreen, contains('searchInputFocused.value'));
     expect(search, contains('onFocusChange: (focused)'));
     expect(search, contains('searchInputFocused.value = focused'));
@@ -89,6 +92,8 @@ void main() {
     expect(overlay, contains('HarmonyChannel.nativeBottomBarActive.value'));
     expect(overlay, contains('setNativeShellSuppressed(false)'));
     expect(miniPlayer, contains('child: RepaintBoundary('));
+    expect(my, contains('final nativeTabIndex = _settledTabIndex.clamp'));
+    expect(my, contains('_tabController.animation?.addListener'));
   });
 
   test('ordinary page routes preserve the confirmed native layout latch', () {

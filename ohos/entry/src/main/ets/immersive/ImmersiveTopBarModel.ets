@@ -55,6 +55,23 @@ export function topIconResource(icon: string): Resource {
       return $r('app.media.top_replay');
     case 'schedule':
       return $r('app.media.top_schedule');
+    case 'search':
+      return $r('app.media.top_search');
+    case 'close':
+    case 'clear':
+      return $r('app.media.top_close');
+    case 'checklist':
+      return $r('app.media.top_checklist');
+    case 'select_all':
+      return $r('app.media.top_select_all');
+    case 'deselect':
+      return $r('app.media.top_deselect');
+    case 'delete':
+      return $r('app.media.top_delete');
+    case 'refresh':
+      return $r('app.media.top_refresh');
+    case 'info_outline':
+      return $r('app.media.top_info_outline');
     default:
       return $r('app.media.top_grid_view');
   }

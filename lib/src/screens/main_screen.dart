@@ -388,6 +388,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         keepMainLayout &&
         !isLandscape &&
         HarmonyChannel.nativeBottomBarActive.value;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     if (isLandscape) {
       // 横屏布局：使用 NavigationRail
@@ -460,6 +461,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                       );
                       final miniPlayer = Consumer(
                         builder: (context, ref, child) {
+                          if (keyboardVisible) {
+                            return const SizedBox.shrink();
+                          }
                           final currentTrack = ref.watch(currentTrackProvider);
                           return currentTrack.when(
                             data: (track) => track != null
@@ -589,9 +593,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     // 继续使用 Scaffold 的 bottomNavigationBar 插槽。
     final miniPlayer = Consumer(
       builder: (context, ref, child) {
-        if (_currentIndex == _searchTabIndex &&
-            (MediaQuery.viewInsetsOf(context).bottom > 0 ||
-                searchInputFocused.value)) {
+        if (keyboardVisible ||
+            (_currentIndex == _searchTabIndex && searchInputFocused.value)) {
           return const SizedBox.shrink();
         }
         final currentTrack = ref.watch(currentTrackProvider);

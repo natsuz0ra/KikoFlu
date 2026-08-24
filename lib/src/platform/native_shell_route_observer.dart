@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'harmony_channel.dart';
@@ -34,10 +36,16 @@ enum NativeShellRouteDisposition {
 /// native HarmonyOS shell must stay mounted for those overlays, while a real
 /// page push still needs to hand control back to Flutter.
 class NativeShellRouteObserver extends NavigatorObserver {
+  NativeShellRouteObserver({this.onPopupVisibilityChanged});
+
+  final FutureOr<void> Function(bool visible)? onPopupVisibilityChanged;
   final List<Route<dynamic>> _routes = <Route<dynamic>>[];
+  bool _popupVisible = false;
 
   /// Changes whenever the root navigator route stack changes.
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  bool get popupVisible => _popupVisible;
 
   NativeShellRouteDisposition dispositionAbove(Route<dynamic>? shellRoute) {
     final coveringRoute = _lastPageRouteAbove(shellRoute);
@@ -111,8 +119,17 @@ class NativeShellRouteObserver extends NavigatorObserver {
   }
 
   void _notifyChanged() {
+    final popupVisible = _routes.any((route) => route is PopupRoute<dynamic>);
+    if (_popupVisible != popupVisible) {
+      _popupVisible = popupVisible;
+      onPopupVisibilityChanged?.call(popupVisible);
+    }
     revision.value++;
   }
 }
 
-final nativeShellRouteObserver = NativeShellRouteObserver();
+final nativeShellRouteObserver = NativeShellRouteObserver(
+  onPopupVisibilityChanged: (visible) {
+    unawaited(HarmonyChannel.setNativeShellSuppressed(visible));
+  },
+);

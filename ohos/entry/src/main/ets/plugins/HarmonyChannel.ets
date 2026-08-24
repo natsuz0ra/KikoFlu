@@ -14,14 +14,15 @@ function latestAttachedChannel(): MethodChannel | null {
  * ArkUI 组件与 EntryAbility 的 Context 拥有不同 EventHub，不能依赖跨 Context
  * 事件转发。返回值只表示当前存在已绑定的 Flutter 通道且已发起回调。
  */
-export function invokeNativeTopAction(page: string, action: string): boolean {
+export function invokeNativeTopAction(page: string, action: string, value?: string): boolean {
   const channel = latestAttachedChannel();
   if (channel === null || action === '') {
     return false;
   }
   channel.invokeMethod('onNativeTopAction', {
     page: page,
-    action: action
+    action: action,
+    value: value
   });
   return true;
 }
@@ -120,7 +121,14 @@ export default class HarmonyChannel implements FlutterPlugin {
         AppStorage.setOrCreate('topSecondaryModeLabels', call.argument('secondaryModeLabels') ?? []);
         AppStorage.setOrCreate('topSecondaryModeIcons', call.argument('secondaryModeIcons') ?? []);
         AppStorage.setOrCreate('topSecondaryModeActions', call.argument('secondaryModeActions') ?? []);
+        AppStorage.setOrCreate('topSecondaryModeSelected', call.argument('secondaryModeSelected') ?? []);
+        AppStorage.setOrCreate('topSecondaryModeEnabled', call.argument('secondaryModeEnabled') ?? []);
         AppStorage.setOrCreate('topSecondarySelectedMode', call.argument('secondarySelectedMode') ?? 0);
+        AppStorage.setOrCreate('topSecondaryLayout', call.argument('secondaryLayout') ?? 'menu');
+        AppStorage.setOrCreate('topSecondaryTitle', call.argument('secondaryTitle') ?? '');
+        AppStorage.setOrCreate('topSecondaryInputValue', call.argument('secondaryInputValue') ?? '');
+        AppStorage.setOrCreate('topSecondaryInputHint', call.argument('secondaryInputHint') ?? '');
+        AppStorage.setOrCreate('topSecondaryInputAction', call.argument('secondaryInputAction') ?? '');
         AppStorage.setOrCreate('topSecondaryToolIcons', call.argument('secondaryToolIcons') ?? []);
         AppStorage.setOrCreate('topSecondaryToolActions', call.argument('secondaryToolActions') ?? []);
         AppStorage.setOrCreate('topSecondaryToolSelected', call.argument('secondaryToolSelected') ?? []);

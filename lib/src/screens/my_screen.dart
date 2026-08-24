@@ -29,6 +29,7 @@ import '../utils/system_ui_style.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
 import '../widgets/navigation_tab_reselect.dart';
 import '../platform/harmony_channel.dart';
+import '../platform/harmony_secondary_toolbar.dart';
 import '../platform/harmony_native_overlay.dart';
 import '../platform/runtime_platform.dart';
 import '../providers/settings_provider.dart';
@@ -53,6 +54,41 @@ class _MyScreenState extends ConsumerState<MyScreen>
   final ValueNotifier<bool> _tabSwitcherVisible = ValueNotifier(true);
   bool _sortDialogOpen = false;
   int _lastTabIndex = 0;
+  int _settledTabIndex = 0;
+  bool _tabTransitionInProgress = false;
+  final HarmonySecondaryToolbarController _downloadsToolbarController =
+      HarmonySecondaryToolbarController(
+        const HarmonySecondaryToolbarData(
+          modeLabels: ['', ''],
+          modeIcons: ['checklist', 'search'],
+          modeActions: ['downloads_select', 'downloads_search'],
+          modeSelected: [false, false],
+          modeEnabled: [true, true],
+          toolIcons: ['refresh', 'sort'],
+          toolActions: ['downloads_refresh', 'downloads_sort'],
+          toolSelected: [false, false],
+          toolEnabled: [true, true],
+        ),
+      );
+  final HarmonySecondaryToolbarController _subtitlesToolbarController =
+      HarmonySecondaryToolbarController(
+        const HarmonySecondaryToolbarData(
+          modeLabels: ['', '', ''],
+          modeIcons: ['arrow_back', 'checklist', 'search'],
+          modeActions: [
+            'subtitles_back',
+            'subtitles_select',
+            'subtitles_search',
+          ],
+          modeSelected: [false, false, false],
+          modeEnabled: [false, true, true],
+          toolIcons: ['refresh', 'info_outline'],
+          toolActions: ['subtitles_refresh', 'subtitles_info'],
+          toolSelected: [false, false],
+          toolEnabled: [true, true],
+        ),
+      );
+  HarmonySecondaryToolbarController? _activeSecondaryToolbarController;
 
   @override
   bool get wantKeepAlive => true; // 保持状态不被销毁
@@ -61,6 +97,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
     MyTabsDisplaySettings settings, {
     required double contentTop,
     required double collapsedToolbarTop,
+    required bool useNativeToolbar,
   }) {
     final tabs = <_TabInfo>[];
     final authState = ref.watch(authProvider);
@@ -114,7 +151,11 @@ class _MyScreenState extends ConsumerState<MyScreen>
           toolbarTop: contentTop,
           collapsedToolbarTop: collapsedToolbarTop,
           primaryToolbarVisible: _tabSwitcherVisible,
+          nativeToolbarController: _downloadsToolbarController,
+          useNativeToolbar: useNativeToolbar,
         ),
+        hasSecondaryToolbar: true,
+        secondaryToolbarController: _downloadsToolbarController,
         showFab: true,
         fabWidget: StreamBuilder<List<DownloadTask>>(
           stream: DownloadService.instance.tasksStream,
@@ -144,7 +185,11 @@ class _MyScreenState extends ConsumerState<MyScreen>
             toolbarTop: contentTop,
             collapsedToolbarTop: collapsedToolbarTop,
             primaryToolbarVisible: _tabSwitcherVisible,
+            nativeToolbarController: _subtitlesToolbarController,
+            useNativeToolbar: useNativeToolbar,
           ),
+          hasSecondaryToolbar: true,
+          secondaryToolbarController: _subtitlesToolbarController,
         ),
       );
     }
@@ -162,7 +207,10 @@ class _MyScreenState extends ConsumerState<MyScreen>
     );
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChanged);
+    _tabController.animation?.addListener(_handleTabAnimation);
     _tabSwitcherVisible.addListener(_handleTopVisibilityChanged);
+    _downloadsToolbarController.addListener(_handleChildToolbarChanged);
+    _subtitlesToolbarController.addListener(_handleChildToolbarChanged);
     // 只在首次加载时获取数据，如果已有数据则不重新加载
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final notifier = ref.read(myReviewsProvider.notifier);
@@ -180,7 +228,12 @@ class _MyScreenState extends ConsumerState<MyScreen>
     HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
     _nativeTopActionRegistration?.dispose();
     _tabController.removeListener(_handleTabChanged);
+    _tabController.animation?.removeListener(_handleTabAnimation);
     _tabSwitcherVisible.removeListener(_handleTopVisibilityChanged);
+    _downloadsToolbarController.removeListener(_handleChildToolbarChanged);
+    _subtitlesToolbarController.removeListener(_handleChildToolbarChanged);
+    _downloadsToolbarController.dispose();
+    _subtitlesToolbarController.dispose();
     _tabController.dispose();
     _tabSwitcherVisible.dispose();
     _scrollController.dispose();
@@ -205,11 +258,44 @@ class _MyScreenState extends ConsumerState<MyScreen>
   }
 
   void _handleTabChanged() {
-    if (_tabController.index == _lastTabIndex) return;
-    setState(() {
+    var needsRebuild = false;
+    if (_tabController.index != _lastTabIndex) {
       _lastTabIndex = _tabController.index;
       _tabSwitcherVisible.value = true;
-    });
+      needsRebuild = true;
+    }
+    if (_updateTabTransitionState()) needsRebuild = true;
+    if (needsRebuild && mounted) setState(() {});
+  }
+
+  void _handleTabAnimation() {
+    if (_updateTabTransitionState() && mounted) setState(() {});
+  }
+
+  bool _updateTabTransitionState() {
+    final animationValue = _tabController.animation?.value;
+    if (animationValue == null) return false;
+    final nearestIndex = animationValue.round().clamp(
+      0,
+      _tabController.length - 1,
+    );
+    final atRest =
+        !_tabController.indexIsChanging &&
+        (animationValue - nearestIndex).abs() < 0.001;
+
+    if (!atRest) {
+      if (_tabTransitionInProgress) return false;
+      _tabTransitionInProgress = true;
+      return true;
+    }
+
+    if (!_tabTransitionInProgress && _settledTabIndex == nearestIndex) {
+      return false;
+    }
+    _tabTransitionInProgress = false;
+    _settledTabIndex = nearestIndex;
+    _tabSwitcherVisible.value = true;
+    return true;
   }
 
   void _handleNativeTopChanged() {
@@ -220,12 +306,19 @@ class _MyScreenState extends ConsumerState<MyScreen>
     if (mounted) setState(() {});
   }
 
+  void _handleChildToolbarChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _handleNativeTopAction(HarmonyNativeTopAction event) {
     if (!mounted) return;
     if (event.action.startsWith('tab_')) {
       final index = int.tryParse(event.action.substring(4));
       if (index == null || index < 0 || index >= _tabController.length) return;
       _tabController.animateTo(index);
+      return;
+    }
+    if (_activeSecondaryToolbarController?.dispatch(event) ?? false) {
       return;
     }
     if (event.action.startsWith('filter_')) {
@@ -399,67 +492,97 @@ class _MyScreenState extends ConsumerState<MyScreen>
     final tabSwitcherTop = FloatingToolbarLayout.toolbarTop(topPadding);
     final contentTop = FloatingToolbarLayout.contentTopAfterRows(topPadding);
     final collapsedToolbarTop = tabSwitcherTop;
-    final tabs = _buildTabList(
-      tabsSettings,
-      contentTop: contentTop,
-      collapsedToolbarTop: collapsedToolbarTop,
-    );
-    // 如果标签数量变化，需要重新创建 TabController
-    if (_tabController.length != tabs.length) {
-      final oldIndex = _tabController.index;
-      _tabController.removeListener(_handleTabChanged);
-      _tabController.dispose();
-      _tabController = TabController(length: tabs.length, vsync: this);
-      _tabController.addListener(_handleTabChanged);
-      // 尝试恢复之前的位置，但不超出新的范围
-      if (oldIndex < tabs.length) {
-        _tabController.index = oldIndex;
-      }
-      _lastTabIndex = _tabController.index;
-    }
-
     final requestNativeTopGlass =
         runtimePlatform.usesNativeHarmonyGlass &&
         ref.watch(liquidGlassTopBarProvider);
     final useNativeTopGlass =
         requestNativeTopGlass &&
         HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.my);
-    final currentTabIndex = _tabController.index.clamp(0, tabs.length - 1);
-    final secondaryVisible = tabs[currentTabIndex].hasSecondaryToolbar;
+    final tabs = _buildTabList(
+      tabsSettings,
+      contentTop: contentTop,
+      collapsedToolbarTop: collapsedToolbarTop,
+      useNativeToolbar: useNativeTopGlass,
+    );
+    // 如果标签数量变化，需要重新创建 TabController
+    if (_tabController.length != tabs.length) {
+      final oldIndex = _tabController.index;
+      _tabController.removeListener(_handleTabChanged);
+      _tabController.animation?.removeListener(_handleTabAnimation);
+      _tabController.dispose();
+      _tabController = TabController(length: tabs.length, vsync: this);
+      _tabController.addListener(_handleTabChanged);
+      _tabController.animation?.addListener(_handleTabAnimation);
+      // 尝试恢复之前的位置，但不超出新的范围
+      if (oldIndex < tabs.length) {
+        _tabController.index = oldIndex;
+      }
+      _lastTabIndex = _tabController.index;
+      _settledTabIndex = _tabController.index;
+      _tabTransitionInProgress = false;
+    }
+
+    final nativeTabIndex = _settledTabIndex.clamp(0, tabs.length - 1);
+    final secondaryVisible = tabs[nativeTabIndex].hasSecondaryToolbar;
+    _activeSecondaryToolbarController =
+        tabs[nativeTabIndex].secondaryToolbarController;
     final myState = ref.watch(myReviewsProvider);
     if (requestNativeTopGlass) {
       final subtitleActive = SubtitleFilterMode.fromValue(
         myState.subtitleFilter,
       ).isActive;
+      final secondaryData =
+          _activeSecondaryToolbarController?.value ??
+          HarmonySecondaryToolbarData(
+            layout: HarmonySecondaryToolbarLayout.menu,
+            modeLabels: MyReviewFilter.values
+                .map((filter) => filter.localizedLabel(context))
+                .toList(),
+            modeIcons: MyReviewFilter.values.map(_nativeFilterIcon).toList(),
+            modeActions: List.generate(
+              MyReviewFilter.values.length,
+              (index) => 'filter_$index',
+            ),
+            modeSelected: List.generate(
+              MyReviewFilter.values.length,
+              (index) => index == myState.filter.index,
+            ),
+            modeEnabled: List.filled(MyReviewFilter.values.length, true),
+            selectedMode: myState.filter.index,
+            toolIcons: [
+              _nativeLayoutIcon(myState.layoutType),
+              subtitleActive ? 'closed_caption' : 'closed_caption_disabled',
+              'sort',
+            ],
+            toolActions: const ['layout', 'subtitle', 'sort'],
+            toolSelected: [false, subtitleActive, false],
+            toolEnabled: const [true, true, true],
+          );
       HarmonyChannel.stageNativeTopBarData(
         page: HarmonyTopBarPage.my,
         modeLabels: tabs.map((tab) => tab.title).toList(),
         modeIcons: tabs.map((tab) => _nativeTabIcon(tab.icon)).toList(),
         modeActions: List.generate(tabs.length, (index) => 'tab_$index'),
-        selectedMode: currentTabIndex,
+        selectedMode: nativeTabIndex,
         toolIcons: const [],
         toolActions: const [],
         toolSelected: const [],
         toolEnabled: const [],
-        secondaryModeLabels: MyReviewFilter.values
-            .map((filter) => filter.localizedLabel(context))
-            .toList(),
-        secondaryModeIcons: MyReviewFilter.values
-            .map(_nativeFilterIcon)
-            .toList(),
-        secondaryModeActions: List.generate(
-          MyReviewFilter.values.length,
-          (index) => 'filter_$index',
-        ),
-        secondarySelectedMode: myState.filter.index,
-        secondaryToolIcons: [
-          _nativeLayoutIcon(myState.layoutType),
-          subtitleActive ? 'closed_caption' : 'closed_caption_disabled',
-          'sort',
-        ],
-        secondaryToolActions: const ['layout', 'subtitle', 'sort'],
-        secondaryToolSelected: [false, subtitleActive, false],
-        secondaryToolEnabled: const [true, true, true],
+        secondaryModeLabels: secondaryData.modeLabels,
+        secondaryModeIcons: secondaryData.modeIcons,
+        secondaryModeActions: secondaryData.modeActions,
+        secondaryModeSelected: secondaryData.modeSelected,
+        secondaryModeEnabled: secondaryData.modeEnabled,
+        secondarySelectedMode: secondaryData.selectedMode,
+        secondaryLayout: secondaryData.layout.name,
+        secondaryTitle: secondaryData.title,
+        secondaryInputValue: secondaryData.inputValue,
+        secondaryInputHint: secondaryData.inputHint,
+        secondaryInputAction: secondaryData.inputAction,
+        secondaryToolIcons: secondaryData.toolIcons,
+        secondaryToolActions: secondaryData.toolActions,
+        secondaryToolSelected: secondaryData.toolSelected,
+        secondaryToolEnabled: secondaryData.toolEnabled,
         secondaryVisible: secondaryVisible,
         collapsed: !_tabSwitcherVisible.value,
         colors: harmonyShellColorsFromColorScheme(
@@ -763,6 +886,7 @@ class _TabInfo {
   final bool showFab;
   final Widget? fabWidget;
   final bool hasSecondaryToolbar;
+  final HarmonySecondaryToolbarController? secondaryToolbarController;
 
   const _TabInfo({
     required this.title,
@@ -772,5 +896,6 @@ class _TabInfo {
     this.showFab = false,
     this.fabWidget,
     this.hasSecondaryToolbar = false,
+    this.secondaryToolbarController,
   });
 }

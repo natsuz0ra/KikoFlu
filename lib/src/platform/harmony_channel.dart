@@ -68,10 +68,15 @@ String _argbHex(Color color) =>
 
 @immutable
 class HarmonyNativeTopAction {
-  const HarmonyNativeTopAction({required this.page, required this.action});
+  const HarmonyNativeTopAction({
+    required this.page,
+    required this.action,
+    this.value,
+  });
 
   final HarmonyTopBarPage page;
   final String action;
+  final String? value;
 }
 
 typedef HarmonyNativeTopActionHandler =
@@ -109,7 +114,14 @@ class _HarmonyTopBarData {
     required this.secondaryModeLabels,
     required this.secondaryModeIcons,
     required this.secondaryModeActions,
+    required this.secondaryModeSelected,
+    required this.secondaryModeEnabled,
     required this.secondarySelectedMode,
+    required this.secondaryLayout,
+    required this.secondaryTitle,
+    required this.secondaryInputValue,
+    required this.secondaryInputHint,
+    required this.secondaryInputAction,
     required this.secondaryToolIcons,
     required this.secondaryToolActions,
     required this.secondaryToolSelected,
@@ -134,7 +146,14 @@ class _HarmonyTopBarData {
   final List<String> secondaryModeLabels;
   final List<String> secondaryModeIcons;
   final List<String> secondaryModeActions;
+  final List<bool> secondaryModeSelected;
+  final List<bool> secondaryModeEnabled;
   final int secondarySelectedMode;
+  final String secondaryLayout;
+  final String secondaryTitle;
+  final String secondaryInputValue;
+  final String secondaryInputHint;
+  final String secondaryInputAction;
   final List<String> secondaryToolIcons;
   final List<String> secondaryToolActions;
   final List<bool> secondaryToolSelected;
@@ -159,7 +178,14 @@ class _HarmonyTopBarData {
     'secondaryModeLabels': secondaryModeLabels,
     'secondaryModeIcons': secondaryModeIcons,
     'secondaryModeActions': secondaryModeActions,
+    'secondaryModeSelected': secondaryModeSelected,
+    'secondaryModeEnabled': secondaryModeEnabled,
     'secondarySelectedMode': secondarySelectedMode,
+    'secondaryLayout': secondaryLayout,
+    'secondaryTitle': secondaryTitle,
+    'secondaryInputValue': secondaryInputValue,
+    'secondaryInputHint': secondaryInputHint,
+    'secondaryInputAction': secondaryInputAction,
     'secondaryToolIcons': secondaryToolIcons,
     'secondaryToolActions': secondaryToolActions,
     'secondaryToolSelected': secondaryToolSelected,
@@ -192,7 +218,14 @@ class _HarmonyTopBarData {
         listEquals(other.secondaryModeLabels, secondaryModeLabels) &&
         listEquals(other.secondaryModeIcons, secondaryModeIcons) &&
         listEquals(other.secondaryModeActions, secondaryModeActions) &&
+        listEquals(other.secondaryModeSelected, secondaryModeSelected) &&
+        listEquals(other.secondaryModeEnabled, secondaryModeEnabled) &&
         other.secondarySelectedMode == secondarySelectedMode &&
+        other.secondaryLayout == secondaryLayout &&
+        other.secondaryTitle == secondaryTitle &&
+        other.secondaryInputValue == secondaryInputValue &&
+        other.secondaryInputHint == secondaryInputHint &&
+        other.secondaryInputAction == secondaryInputAction &&
         listEquals(other.secondaryToolIcons, secondaryToolIcons) &&
         listEquals(other.secondaryToolActions, secondaryToolActions) &&
         listEquals(other.secondaryToolSelected, secondaryToolSelected) &&
@@ -219,7 +252,14 @@ class _HarmonyTopBarData {
     Object.hashAll(secondaryModeLabels),
     Object.hashAll(secondaryModeIcons),
     Object.hashAll(secondaryModeActions),
+    Object.hashAll(secondaryModeSelected),
+    Object.hashAll(secondaryModeEnabled),
     secondarySelectedMode,
+    secondaryLayout,
+    secondaryTitle,
+    secondaryInputValue,
+    secondaryInputHint,
+    secondaryInputAction,
     Object.hashAll(secondaryToolIcons),
     Object.hashAll(secondaryToolActions),
     Object.hashAll(secondaryToolSelected),
@@ -266,13 +306,18 @@ abstract final class HarmonyChannel {
         case 'onNativeTopAction':
           final pageName = map['page'];
           final action = map['action'];
+          final value = map['value'];
           final page = HarmonyTopBarPage.values
               .where((candidate) => candidate.name == pageName)
               .firstOrNull;
           if (page != null && action is String) {
             _dispatchNativeTopAction(
               page,
-              HarmonyNativeTopAction(page: page, action: action),
+              HarmonyNativeTopAction(
+                page: page,
+                action: action,
+                value: value is String ? value : null,
+              ),
             );
           }
           break;
@@ -370,6 +415,7 @@ abstract final class HarmonyChannel {
         WidgetsBinding.instance.addPostFrameCallback((_) => retry());
       }
     }
+
     WidgetsBinding.instance.addPostFrameCallback((_) => retry());
   }
 
@@ -395,7 +441,14 @@ abstract final class HarmonyChannel {
     List<String> secondaryModeLabels = const [],
     List<String> secondaryModeIcons = const [],
     List<String> secondaryModeActions = const [],
+    List<bool> secondaryModeSelected = const [],
+    List<bool> secondaryModeEnabled = const [],
     int secondarySelectedMode = 0,
+    String secondaryLayout = 'menu',
+    String secondaryTitle = '',
+    String secondaryInputValue = '',
+    String secondaryInputHint = '',
+    String secondaryInputAction = '',
     List<String> secondaryToolIcons = const [],
     List<String> secondaryToolActions = const [],
     List<bool> secondaryToolSelected = const [],
@@ -411,6 +464,14 @@ abstract final class HarmonyChannel {
     assert(toolIcons.length == toolEnabled.length);
     assert(secondaryModeLabels.length == secondaryModeIcons.length);
     assert(secondaryModeLabels.length == secondaryModeActions.length);
+    assert(
+      secondaryModeSelected.isEmpty ||
+          secondaryModeIcons.length == secondaryModeSelected.length,
+    );
+    assert(
+      secondaryModeEnabled.isEmpty ||
+          secondaryModeIcons.length == secondaryModeEnabled.length,
+    );
     assert(secondaryToolIcons.length == secondaryToolActions.length);
     assert(secondaryToolIcons.length == secondaryToolSelected.length);
     assert(secondaryToolIcons.length == secondaryToolEnabled.length);
@@ -430,7 +491,14 @@ abstract final class HarmonyChannel {
       secondaryModeLabels: List.unmodifiable(secondaryModeLabels),
       secondaryModeIcons: List.unmodifiable(secondaryModeIcons),
       secondaryModeActions: List.unmodifiable(secondaryModeActions),
+      secondaryModeSelected: List.unmodifiable(secondaryModeSelected),
+      secondaryModeEnabled: List.unmodifiable(secondaryModeEnabled),
       secondarySelectedMode: secondarySelectedMode,
+      secondaryLayout: secondaryLayout,
+      secondaryTitle: secondaryTitle,
+      secondaryInputValue: secondaryInputValue,
+      secondaryInputHint: secondaryInputHint,
+      secondaryInputAction: secondaryInputAction,
       secondaryToolIcons: List.unmodifiable(secondaryToolIcons),
       secondaryToolActions: List.unmodifiable(secondaryToolActions),
       secondaryToolSelected: List.unmodifiable(secondaryToolSelected),

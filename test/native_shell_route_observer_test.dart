@@ -4,13 +4,19 @@ import 'package:kikoeru_flutter/src/platform/harmony_channel.dart';
 import 'package:kikoeru_flutter/src/platform/native_shell_route_observer.dart';
 
 void main() {
-  test('keeps the native shell for PopupRoute overlays', () {
-    final observer = NativeShellRouteObserver();
+  test('keeps route ownership while suppressing nested PopupRoutes', () {
+    final popupVisibility = <bool>[];
+    final observer = NativeShellRouteObserver(
+      onPopupVisibilityChanged: popupVisibility.add,
+    );
     addTearDown(observer.revision.dispose);
     final mainRoute = MaterialPageRoute<void>(
       builder: (_) => const SizedBox.shrink(),
     );
     final popupRoute = RawDialogRoute<void>(
+      pageBuilder: (_, _, _) => const SizedBox.shrink(),
+    );
+    final nestedPopupRoute = RawDialogRoute<void>(
       pageBuilder: (_, _, _) => const SizedBox.shrink(),
     );
 
@@ -22,6 +28,17 @@ void main() {
       observer.dispositionAbove(mainRoute),
       NativeShellRouteDisposition.mainShell,
     );
+    expect(observer.popupVisible, isTrue);
+    expect(popupVisibility, [true]);
+
+    observer.didPush(nestedPopupRoute, popupRoute);
+    observer.didPop(nestedPopupRoute, popupRoute);
+    expect(observer.popupVisible, isTrue);
+    expect(popupVisibility, [true]);
+
+    observer.didPop(popupRoute, mainRoute);
+    expect(observer.popupVisible, isFalse);
+    expect(popupVisibility, [true, false]);
   });
 
   test('marks an ordinary page as temporary main-shell coverage', () {
