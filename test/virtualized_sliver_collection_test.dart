@@ -6,6 +6,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:kikoeru_flutter/l10n/app_localizations.dart';
 import 'package:kikoeru_flutter/src/widgets/virtualized_sliver_collection.dart';
 import 'package:kikoeru_flutter/src/widgets/liquid_glass_layout.dart';
+import 'package:kikoeru_flutter/src/widgets/overscroll_next_page_detector.dart';
 
 Widget _app(Widget child, {Size size = const Size(400, 800)}) {
   return MaterialApp(
@@ -68,6 +69,62 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('passes the measured dock extent to pagination prompt',
+      (tester) async {
+    final dockExtent = ValueNotifier<double>(128);
+
+    await tester.pumpWidget(
+      _app(
+        LiquidGlassDockScope(
+          notifier: dockExtent,
+          child: VirtualizedSliverCollection<int>(
+            items: List.generate(20, (index) => index),
+            itemId: (item) => item,
+            showEndIndicator: false,
+            pagination: VirtualizedPagination(
+              currentPage: 1,
+              pageSize: 20,
+              totalCount: 40,
+              hasMore: true,
+              isLoading: false,
+              scrollToTop: false,
+              nextPageOnOverscroll: true,
+              onNextPage: () async {},
+            ),
+            itemBuilder: (context, item, index) => _IdentityTile(item: item),
+          ),
+        ),
+      ),
+    );
+
+    final detector = tester.widget<OverscrollNextPageDetector>(
+      find.byType(OverscrollNextPageDetector),
+    );
+    expect(detector.bottomInset, dockExtent.value);
+  });
+
+  testWidgets('forwards the top toolbar offset to RefreshIndicator',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        VirtualizedSliverCollection<int>(
+          items: const [1, 2, 3],
+          itemId: (item) => item,
+          onRefresh: () async {},
+          refreshIndicatorEdgeOffset: 96,
+          refreshIndicatorDisplacement: 40,
+          itemBuilder: (context, item, index) => _IdentityTile(item: item),
+        ),
+      ),
+    );
+
+    final indicator = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
+    );
+    expect(indicator.edgeOffset, 96);
+    expect(indicator.displacement, 40);
   });
 
   testWidgets('stable item identity preserves item state after reordering',

@@ -14,6 +14,7 @@ import '../services/log_service.dart';
 import '../widgets/scrollable_appbar.dart';
 import '../widgets/download_fab.dart';
 import '../widgets/floating_feed_toolbar.dart';
+import '../widgets/liquid_glass_layout.dart';
 import 'search_result_screen.dart';
 
 // 搜索条件项
@@ -292,6 +293,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     final theme = Theme.of(context);
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final dockExtent = LiquidGlassDockScope.extentOf(context);
     return GestureDetector(
       // 点击任何地方（包括 AppBar）都取消焦点，关闭下拉框
       onTap: () {
@@ -362,7 +364,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               )
             : SingleChildScrollView(
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + dockExtent),
                   color: theme.colorScheme.surface,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

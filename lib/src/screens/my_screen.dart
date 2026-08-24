@@ -428,7 +428,21 @@ class _MyScreenState extends ConsumerState<MyScreen>
 
     return Stack(
       children: [
-        Positioned.fill(child: _buildBody(state, topPadding: toolbarTop + 56)),
+        Positioned.fill(
+          child: ValueListenableBuilder<bool>(
+            valueListenable: _tabSwitcherVisible,
+            builder: (context, primaryToolbarVisible, child) {
+              final activeToolbarTop = primaryToolbarVisible
+                  ? toolbarTop
+                  : collapsedToolbarTop;
+              return _buildBody(
+                state,
+                topPadding: toolbarTop + 56,
+                refreshIndicatorEdgeOffset: activeToolbarTop + 56,
+              );
+            },
+          ),
+        ),
         FloatingToolbarPositionFollower(
           primaryToolbarVisible: _tabSwitcherVisible,
           visibleTop: toolbarTop,
@@ -474,7 +488,11 @@ class _MyScreenState extends ConsumerState<MyScreen>
     );
   }
 
-  Widget _buildBody(MyReviewsState state, {double topPadding = 0}) {
+  Widget _buildBody(
+    MyReviewsState state, {
+    double topPadding = 0,
+    double refreshIndicatorEdgeOffset = 0,
+  }) {
     if (state.error != null) {
       return Center(
         child: Column(
@@ -532,6 +550,7 @@ class _MyScreenState extends ConsumerState<MyScreen>
       loadMoreError: state.loadMoreError,
       onRetry: () => ref.read(myReviewsProvider.notifier).refresh(),
       onRefresh: () => ref.read(myReviewsProvider.notifier).refresh(),
+      refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
       pagination: VirtualizedPagination(
         currentPage: state.currentPage,
         pageSize: state.layoutType == MyReviewLayoutType.list

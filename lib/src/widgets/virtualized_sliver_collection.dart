@@ -141,6 +141,8 @@ class VirtualizedSliverCollection<T> extends StatefulWidget {
     this.sliversBefore = const [],
     this.sliversAfter = const [],
     this.onRefresh,
+    this.refreshIndicatorEdgeOffset = 0,
+    this.refreshIndicatorDisplacement = 40,
     this.onLoadMore,
     this.pagination,
     this.onRetry,
@@ -195,6 +197,8 @@ class VirtualizedSliverCollection<T> extends StatefulWidget {
   final List<Widget> sliversBefore;
   final List<Widget> sliversAfter;
   final Future<void> Function()? onRefresh;
+  final double refreshIndicatorEdgeOffset;
+  final double refreshIndicatorDisplacement;
   final Future<void> Function()? onLoadMore;
   final VirtualizedPagination? pagination;
   final VoidCallback? onRetry;
@@ -679,6 +683,8 @@ class _VirtualizedSliverCollectionState<T>
     if (widget.onRefresh != null) {
       scrollView = RefreshIndicator(
         onRefresh: widget.onRefresh!,
+        edgeOffset: widget.refreshIndicatorEdgeOffset,
+        displacement: widget.refreshIndicatorDisplacement,
         child: scrollView,
       );
     }
@@ -693,6 +699,7 @@ class _VirtualizedSliverCollectionState<T>
         ),
         hasNextPage: pagination.hasMore,
         isLoading: pagination.isLoading || _pageRequestInFlight,
+        bottomInset: liquidGlassDockExtent,
         child: scrollView,
       );
     }

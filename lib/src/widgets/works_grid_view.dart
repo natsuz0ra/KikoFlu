@@ -23,6 +23,8 @@ class WorksGridView extends ConsumerWidget {
     this.error,
     this.loadMoreError,
     this.onRefresh,
+    this.refreshIndicatorEdgeOffset = 0,
+    this.refreshIndicatorDisplacement = 40,
     this.onLoadMore,
     this.onRetry,
     this.onPrefetch,
@@ -50,6 +52,8 @@ class WorksGridView extends ConsumerWidget {
   final Object? error;
   final Object? loadMoreError;
   final Future<void> Function()? onRefresh;
+  final double refreshIndicatorEdgeOffset;
+  final double refreshIndicatorDisplacement;
   final Future<void> Function()? onLoadMore;
   final VoidCallback? onRetry;
   final ValueChanged<List<Work>>? onPrefetch;
@@ -136,6 +140,8 @@ class WorksGridView extends ConsumerWidget {
         error: works.isEmpty ? error : null,
         loadMoreError: loadMoreError,
         onRefresh: onRefresh,
+        refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
+        refreshIndicatorDisplacement: refreshIndicatorDisplacement,
         onLoadMore: onLoadMore,
         pagination: pagination?.copyWith(
           padding: EdgeInsets.fromLTRB(
