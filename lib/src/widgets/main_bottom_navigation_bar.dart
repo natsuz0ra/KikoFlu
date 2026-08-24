@@ -16,6 +16,7 @@ class MainBottomNavigationBar extends StatelessWidget {
     this.fallbackGlassTransparency = 0.4,
     this.showUpdateBadge = false,
     this.onLayoutExtentChanged,
+    this.visible = true,
   });
 
   static const double navigationBarHeight = 58;
@@ -28,9 +29,20 @@ class MainBottomNavigationBar extends StatelessWidget {
   final double fallbackGlassTransparency;
   final bool showUpdateBadge;
   final ValueChanged<double>? onLayoutExtentChanged;
+  final bool visible;
 
   @override
   Widget build(BuildContext context) {
+    if (!visible) {
+      if (liquidGlass) {
+        return LiquidGlassDockExtentReporter(
+          onChanged: onLayoutExtentChanged ?? (_) {},
+          child: const SizedBox.shrink(),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
     if (liquidGlass) {
       return _LiquidGlassBottomNavigation(
         selectedIndex: selectedIndex,

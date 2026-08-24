@@ -636,6 +636,9 @@ class _VirtualizedSliverCollectionState<T>
     final delegate = _buildDelegate(indexById);
     final liquidGlassDockExtent = LiquidGlassDockScope.extentOf(context);
     final trailingSafeExtent = liquidGlassDockExtent;
+    final collectionTopPadding = widget.padding
+        .resolve(Directionality.of(context))
+        .top;
     final collection = switch (widget.layout) {
       VirtualizedCollectionLayout.list => SliverList(delegate: delegate),
       VirtualizedCollectionLayout.grid => SliverGrid(
@@ -659,6 +662,10 @@ class _VirtualizedSliverCollectionState<T>
       physics: widget.physics,
       slivers: [
         ...widget.sliversBefore,
+        if (widget.items.isEmpty &&
+            !widget.fillEmptyViewport &&
+            collectionTopPadding > 0)
+          SliverToBoxAdapter(child: SizedBox(height: collectionTopPadding)),
         if (widget.items.isEmpty && widget.fillEmptyViewport)
           SliverFillRemaining(
             hasScrollBody: false,

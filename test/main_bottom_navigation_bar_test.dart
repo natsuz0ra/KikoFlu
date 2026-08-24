@@ -76,6 +76,43 @@ void main() {
     expect(find.byType(NavigationRail), findsNothing);
   });
 
+  testWidgets('hidden liquid glass navigation reports a zero dock extent', (
+    tester,
+  ) async {
+    double? reportedExtent;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: MainBottomNavigationBar(
+              selectedIndex: 0,
+              liquidGlass: true,
+              visible: false,
+              onLayoutExtentChanged: (extent) => reportedExtent = extent,
+              onDestinationSelected: (_) {},
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.search_outlined),
+                  label: 'Search',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(LiquidGlassBottomBar), findsNothing);
+    expect(reportedExtent, 0);
+  });
+
   testWidgets(
     'modern iOS glass bar compensates native inset and reports dock height',
     (tester) async {

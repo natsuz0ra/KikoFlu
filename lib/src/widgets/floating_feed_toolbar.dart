@@ -179,6 +179,7 @@ class _ModeDropdown extends StatelessWidget {
       width: maxWidth,
       child: PopupMenuButton<int>(
         tooltip: selected.label,
+        borderRadius: BorderRadius.circular(20),
         position: PopupMenuPosition.under,
         onSelected: (index) => actions[index].onPressed(),
         itemBuilder: (context) => [

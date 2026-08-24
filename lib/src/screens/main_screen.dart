@@ -117,6 +117,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         MediaQuery.of(context).orientation == Orientation.landscape;
     final showUpdateBadge = ref.watch(showUpdateRedDotProvider);
     final useLiquidGlass = ref.watch(liquidGlassNavigationProvider);
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final destinations = _buildDestinations(context, showUpdateBadge);
 
     if (isLandscape) {
@@ -341,6 +342,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             }
           },
           miniPlayer: child!,
+          visible: !keyboardVisible,
         );
       },
     );

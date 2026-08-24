@@ -320,6 +320,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('feed-mode-dropdown')), findsOneWidget);
     expect(find.byType(SingleChildScrollView), findsNothing);
+    final dropdown = tester.widget<PopupMenuButton<int>>(
+      find.descendant(
+        of: find.byKey(const ValueKey('feed-mode-dropdown')),
+        matching: find.byType(PopupMenuButton<int>),
+      ),
+    );
+    expect(dropdown.borderRadius, BorderRadius.circular(20));
     await tester.tap(find.byKey(const ValueKey('feed-mode-dropdown')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Filter option 1'));

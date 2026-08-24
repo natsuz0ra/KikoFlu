@@ -127,6 +127,32 @@ void main() {
     expect(indicator.displacement, 40);
   });
 
+  testWidgets('empty pagination starts after the collection top padding',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        VirtualizedSliverCollection<int>(
+          items: const [],
+          itemId: (item) => item,
+          fillEmptyViewport: false,
+          padding: const EdgeInsets.only(top: 120),
+          pagination: const VirtualizedPagination(
+            currentPage: 1,
+            pageSize: 20,
+            totalCount: 0,
+            hasMore: false,
+            isLoading: false,
+            showWhenEmpty: true,
+            endMessage: 'empty end',
+          ),
+          itemBuilder: (context, item, index) => _IdentityTile(item: item),
+        ),
+      ),
+    );
+
+    expect(tester.getTopLeft(find.text('empty end')).dy, greaterThan(120));
+  });
+
   testWidgets('stable item identity preserves item state after reordering',
       (tester) async {
     final items = ValueNotifier<List<int>>([1, 2, 3]);
