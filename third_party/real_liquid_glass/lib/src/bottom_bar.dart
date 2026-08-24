@@ -77,6 +77,7 @@ class LiquidGlassBottomBar extends StatefulWidget {
     this.margin = EdgeInsets.zero,
     this.showLabels = true,
     this.fallbackIntensity = 1.0,
+    this.fallbackSurfaceBuilder,
   }) : assert(items.length >= 2, 'Provide at least two destinations');
 
   /// The destinations to display, in order.
@@ -108,6 +109,9 @@ class LiquidGlassBottomBar extends StatefulWidget {
   /// Fallback-effect strength on non-Apple platforms; see
   /// [LiquidGlassContainer.fallbackIntensity].
   final double fallbackIntensity;
+
+  /// Optional surface used instead of the default Flutter fallback.
+  final WidgetBuilder? fallbackSurfaceBuilder;
 
   static const double _capsulePadding = 4;
   static const Color _pillLight = Color(0x14000000);
@@ -194,6 +198,7 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar> {
       margin: widget.margin,
       padding: const EdgeInsets.all(LiquidGlassBottomBar._capsulePadding),
       fallbackIntensity: widget.fallbackIntensity,
+      fallbackSurfaceBuilder: widget.fallbackSurfaceBuilder,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final barWidth = constraints.maxWidth;

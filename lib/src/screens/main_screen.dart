@@ -45,12 +45,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         key: const PageStorageKey('works_screen'),
         reselectController: _homeReselectController,
       ),
-      SearchScreen(key: PageStorageKey('search_screen')),
+      const SearchScreen(key: PageStorageKey('search_screen')),
       MyScreen(
         key: const PageStorageKey('my_screen'),
         reselectController: _myReselectController,
       ),
-      SettingsScreen(key: PageStorageKey('settings_screen')),
+      const SettingsScreen(key: PageStorageKey('settings_screen')),
     ];
   }
 

@@ -196,14 +196,19 @@ class FloatingLyricEnabledNotifier extends StateNotifier<bool> {
     // 如果要启用悬浮窗，先检查权限
     if (newValue) {
       if (!ref.read(privacyModeSettingsProvider).enabled) {
-        final hasPermission = await FloatingLyricService.instance
-            .hasPermission();
-        if (!hasPermission) {
-          final granted = await FloatingLyricService.instance
-              .requestPermission();
-          if (!granted) {
-            _log.captureOutput('[FloatingLyric] 用户未授予悬浮窗权限');
-            return false;
+        // HarmonyOS has no separate permission prompt. The native show call
+        // atomically checks support and creates/uses the AVSession, avoiding a
+        // false "unsupported" result while that session is still starting.
+        if (!runtimePlatform.isOhos) {
+          final hasPermission = await FloatingLyricService.instance
+              .hasPermission();
+          if (!hasPermission) {
+            final granted = await FloatingLyricService.instance
+                .requestPermission();
+            if (!granted) {
+              _log.captureOutput('[FloatingLyric] 用户未授予悬浮窗权限');
+              return false;
+            }
           }
         }
 

@@ -27,6 +27,13 @@ class FloatingLyricService {
 
   FloatingLyricService._() {
     _platform.setMethodCallHandler(_handleMethodCall);
+    if (runtimePlatform.isOhos) {
+      OhosSystemLyricService.instance.onExternalDesktopVisibilityChanged.listen(
+        (visible) {
+          if (!visible) _onCloseController.add(null);
+        },
+      );
+    }
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -133,9 +140,7 @@ class FloatingLyricService {
         }
 
         final controller = await WindowController.create(
-          WindowConfiguration(
-            arguments: jsonEncode(args),
-          ),
+          WindowConfiguration(arguments: jsonEncode(args)),
         );
         _windowId = controller.windowId;
         await controller.show();
@@ -220,9 +225,7 @@ class FloatingLyricService {
         try {
           // _log.captureOutput('[FloatingLyric] Updating text for window $_windowId: $text');
           final controller = WindowController.fromWindowId(_windowId!);
-          await controller.invokeMethod('updateText', {
-            'text': text,
-          });
+          await controller.invokeMethod('updateText', {'text': text});
           return true;
         } catch (e) {
           _log.captureOutput('[FloatingLyric] Windows更新文本失败: $e');
@@ -237,9 +240,7 @@ class FloatingLyricService {
     }
 
     try {
-      final result = await _platform.invokeMethod('updateText', {
-        'text': text,
-      });
+      final result = await _platform.invokeMethod('updateText', {'text': text});
       return result == true;
     } catch (e) {
       _log.captureOutput('[FloatingLyric] 更新文本失败: $e');
@@ -251,8 +252,8 @@ class FloatingLyricService {
   Future<bool> hasPermission() async {
     if (Platform.isWindows || Platform.isMacOS || Platform.isIOS) return true;
     if (runtimePlatform.isOhos) {
-      final capabilities =
-          await OhosSystemLyricService.instance.getCapabilities();
+      final capabilities = await OhosSystemLyricService.instance
+          .getCapabilities();
       return capabilities.desktopLyric;
     }
     if (!isSupported) {
@@ -272,8 +273,8 @@ class FloatingLyricService {
   Future<bool> requestPermission() async {
     if (Platform.isWindows || Platform.isMacOS || Platform.isIOS) return true;
     if (runtimePlatform.isOhos) {
-      final capabilities =
-          await OhosSystemLyricService.instance.getCapabilities();
+      final capabilities = await OhosSystemLyricService.instance
+          .getCapabilities();
       return capabilities.desktopLyric;
     }
     if (!isSupported) {

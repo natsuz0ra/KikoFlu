@@ -39,23 +39,47 @@ class OhosLyricContent {
 class OhosSystemLyricService {
   OhosSystemLyricService({MethodChannel? channel, bool Function()? isOhos})
     : _channel = channel ?? const MethodChannel(channelName),
-      _isOhos = isOhos ?? (() => runtimePlatform.isOhos);
+      _isOhos = isOhos ?? (() => runtimePlatform.isOhos) {
+    if (_isOhos()) {
+      _channel.setMethodCallHandler(_handleNativeCall);
+    }
+  }
 
   static const channelName = 'com.kikoeru.audio_service/ohos_lyric';
   static final instance = OhosSystemLyricService();
 
   final MethodChannel _channel;
   final bool Function() _isOhos;
+  final _externalDesktopVisibilityController =
+      StreamController<bool>.broadcast();
+
+  /// Visibility changes initiated by the system surface instead of this app.
+  Stream<bool> get onExternalDesktopVisibilityChanged =>
+      _externalDesktopVisibilityController.stream;
 
   OhosLyricContent? _lastContent;
   _PendingContent? _pendingContent;
   bool _drainingContent = false;
 
   bool? _lastDesktopVisible;
+  bool? _desiredDesktopVisible;
   _PendingVisibility? _pendingVisibility;
   bool _drainingVisibility = false;
   OhosLyricCapabilities? _cachedCapabilities;
   int _nativeStateEpoch = 0;
+
+  Future<void> _handleNativeCall(MethodCall call) async {
+    if (call.method != 'onDesktopLyricVisibilityChanged') return;
+
+    final visible = call.arguments == true;
+    _lastDesktopVisible = visible;
+    if (_desiredDesktopVisible == visible) return;
+
+    // A different value means the system surface changed independently, such
+    // as when the user closes the desktop lyric window from its own controls.
+    _desiredDesktopVisible = visible;
+    _externalDesktopVisibilityController.add(visible);
+  }
 
   /// Invalidates values cached for the current native AVSession.
   ///
@@ -150,6 +174,7 @@ class OhosSystemLyricService {
 
   Future<bool> setDesktopLyricVisible(bool visible) {
     if (!_isOhos()) return Future.value(false);
+    _desiredDesktopVisible = visible;
     if (_lastDesktopVisible == visible && _pendingVisibility == null) {
       return Future.value(true);
     }

@@ -197,4 +197,76 @@ void main() {
     expect(contentCalls, 2);
     expect(visibilityCalls, 2);
   });
+
+  test('reports a system-initiated desktop lyric close', () async {
+    final calls = <MethodCall>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return true;
+    });
+    final service = OhosSystemLyricService(
+      channel: channel,
+      isOhos: () => true,
+    );
+    final externalChanges = <bool>[];
+    final subscription = service.onExternalDesktopVisibilityChanged.listen(
+      externalChanges.add,
+    );
+
+    expect(await service.setDesktopLyricVisible(true), isTrue);
+    await _sendNativeLyricCall(
+      messenger,
+      const MethodCall('onDesktopLyricVisibilityChanged', true),
+    );
+    expect(externalChanges, isEmpty);
+
+    await _sendNativeLyricCall(
+      messenger,
+      const MethodCall('onDesktopLyricVisibilityChanged', false),
+    );
+    expect(externalChanges, [false]);
+
+    // The native event updates the visibility cache, so the provider's state
+    // reconciliation does not send a redundant hide command back to OHOS.
+    expect(await service.setDesktopLyricVisible(false), isTrue);
+    expect(calls, hasLength(1));
+    await subscription.cancel();
+  });
+
+  test(
+    'does not report an app-requested desktop lyric hide as external',
+    () async {
+      messenger.setMockMethodCallHandler(channel, (call) async => true);
+      final service = OhosSystemLyricService(
+        channel: channel,
+        isOhos: () => true,
+      );
+      final externalChanges = <bool>[];
+      final subscription = service.onExternalDesktopVisibilityChanged.listen(
+        externalChanges.add,
+      );
+
+      expect(await service.setDesktopLyricVisible(false), isTrue);
+      await _sendNativeLyricCall(
+        messenger,
+        const MethodCall('onDesktopLyricVisibilityChanged', false),
+      );
+
+      expect(externalChanges, isEmpty);
+      await subscription.cancel();
+    },
+  );
+}
+
+Future<void> _sendNativeLyricCall(
+  TestDefaultBinaryMessenger messenger,
+  MethodCall call,
+) async {
+  final reply = Completer<void>();
+  await messenger.handlePlatformMessage(
+    OhosSystemLyricService.channelName,
+    const StandardMethodCodec().encodeMethodCall(call),
+    (_) => reply.complete(),
+  );
+  await reply.future;
 }

@@ -135,10 +135,7 @@ void main() {
     );
 
     final glass = find.byType(LiquidGlassContainer);
-    expect(
-      tester.widget<LiquidGlassContainer>(glass).fallbackIntensity,
-      0.9,
-    );
+    expect(tester.widget<LiquidGlassContainer>(glass).fallbackIntensity, 0.9);
     final fallbackDecoration = tester
         .widgetList<DecoratedBox>(
           find.descendant(of: glass, matching: find.byType(DecoratedBox)),
@@ -330,7 +327,7 @@ void main() {
     expect(selectedMode, 1);
   });
 
-  testWidgets('can keep every mode as buttons in a narrow toolbar', (
+  testWidgets('fills a narrow mode capsule without horizontal scrolling', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -359,9 +356,75 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('feed-mode-dropdown')), findsNothing);
-    expect(find.byKey(const ValueKey('feed-mode-scroll')), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.text('全部'), findsOneWidget);
     expect(find.text('热门'), findsOneWidget);
     expect(find.text('推荐'), findsOneWidget);
+
+    final capsule = tester.getRect(
+      find.byKey(const ValueKey('feed-mode-capsule')),
+    );
+    for (final label in ['全部', '热门', '推荐']) {
+      final labelRect = tester.getRect(find.text(label));
+      expect(labelRect.left, greaterThanOrEqualTo(capsule.left));
+      expect(labelRect.right, lessThanOrEqualTo(capsule.right));
+    }
   });
+
+  testWidgets('slides the filled mode indicator between homepage modes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_testApp(const _SelectableModeToolbar()));
+
+    final indicator = find.byKey(const ValueKey('feed-mode-indicator'));
+    final initialLeft = tester.getTopLeft(indicator).dx;
+
+    await tester.tap(find.text('推荐'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 90));
+    final middleLeft = tester.getTopLeft(indicator).dx;
+
+    await tester.pumpAndSettle();
+    final finalLeft = tester.getTopLeft(indicator).dx;
+
+    expect(middleLeft, greaterThan(initialLeft));
+    expect(middleLeft, lessThan(finalLeft));
+    expect(finalLeft - initialLeft, greaterThan(100));
+  });
+}
+
+class _SelectableModeToolbar extends StatefulWidget {
+  const _SelectableModeToolbar();
+
+  @override
+  State<_SelectableModeToolbar> createState() => _SelectableModeToolbarState();
+}
+
+class _SelectableModeToolbarState extends State<_SelectableModeToolbar> {
+  int selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['全部', '热门', '推荐'];
+    return FloatingFeedToolbar(
+      collapseModesWhenNeeded: false,
+      modeActions: [
+        for (var index = 0; index < labels.length; index++)
+          FloatingFeedModeAction(
+            icon: Icons.filter_alt,
+            label: labels[index],
+            isSelected: selectedIndex == index,
+            onPressed: () => setState(() => selectedIndex = index),
+          ),
+      ],
+      toolActions: [
+        for (var index = 0; index < 4; index++)
+          FloatingFeedToolAction(
+            icon: Icons.tune,
+            tooltip: 'Tool $index',
+            onPressed: () {},
+          ),
+      ],
+    );
+  }
 }

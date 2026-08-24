@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:real_liquid_glass/real_liquid_glass.dart';
 
 import '../models/audio_track.dart';
+import '../platform/runtime_platform.dart';
 import '../providers/audio_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/lyric_provider.dart';
@@ -14,6 +15,7 @@ import '../providers/player_lyric_style_provider.dart';
 import '../providers/settings_provider.dart';
 import '../screens/audio_player_screen.dart';
 import '../utils/local_file_url.dart';
+import 'frosted_glass_surface.dart';
 import 'privacy_blur_cover.dart';
 import 'volume_control.dart';
 import 'liquid_glass_layout.dart';
@@ -47,6 +49,7 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
     final useLiquidGlass = ref.watch(liquidGlassNavigationProvider);
     final fallbackGlassTransparency =
         ref.watch(fallbackGlassTransparencyProvider);
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     // 启用自动字幕加载器
     ref.watch(lyricAutoLoaderProvider);
@@ -69,7 +72,7 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
           }
         }
 
-        if (track == null || !isMiniPlayerVisible) {
+        if (track == null || !isMiniPlayerVisible || keyboardVisible) {
           return const SizedBox.shrink();
         }
 
@@ -483,6 +486,13 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
 
               if (!useLiquidGlass) return playerContent;
 
+              final glassPlayer = ClipRRect(
+                borderRadius: BorderRadius.circular(
+                  LiquidGlassLayout.cornerRadius,
+                ),
+                child: playerContent,
+              );
+
               return Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: LiquidGlassLayout.horizontalPadding,
@@ -492,19 +502,22 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOutCubic,
                   alignment: Alignment.bottomCenter,
-                  child: LiquidGlassContainer(
-                    shape: const LiquidGlassShape.roundedRectangle(
-                      LiquidGlassLayout.cornerRadius,
-                    ),
-                    style: LiquidGlassStyle.regular,
-                    fallbackIntensity: fallbackGlassTransparency,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        LiquidGlassLayout.cornerRadius,
-                      ),
-                      child: playerContent,
-                    ),
-                  ),
+                  child: runtimePlatform.isOhos
+                      ? FrostedGlassSurface(
+                          borderRadius: BorderRadius.circular(
+                            LiquidGlassLayout.cornerRadius,
+                          ),
+                          intensity: fallbackGlassTransparency,
+                          child: glassPlayer,
+                        )
+                      : LiquidGlassContainer(
+                          shape: const LiquidGlassShape.roundedRectangle(
+                            LiquidGlassLayout.cornerRadius,
+                          ),
+                          style: LiquidGlassStyle.regular,
+                          fallbackIntensity: fallbackGlassTransparency,
+                          child: glassPlayer,
+                        ),
                 ),
               );
             },

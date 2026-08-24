@@ -38,6 +38,7 @@ class LiquidGlassContainer extends StatelessWidget {
     this.width,
     this.height,
     this.fallbackIntensity = 1.0,
+    this.fallbackSurfaceBuilder,
   });
 
   /// Content rendered on top of the glass.
@@ -82,17 +83,22 @@ class LiquidGlassContainer extends StatelessWidget {
   /// where the system setting governs the real material.
   final double fallbackIntensity;
 
+  /// Optionally replaces the Flutter-drawn fallback surface while retaining
+  /// this container's sizing, padding, content, and interaction behavior.
+  final WidgetBuilder? fallbackSurfaceBuilder;
+
   @override
   Widget build(BuildContext context) {
     final Widget surface;
     if (!LiquidGlass.isNativePlatform ||
         _LiquidGlassCompositionScope.forceFallbackOf(context)) {
-      surface = FallbackGlass(
-        style: style,
-        shape: shape,
-        tint: tint,
-        intensity: fallbackIntensity,
-      );
+      surface = fallbackSurfaceBuilder?.call(context) ??
+          FallbackGlass(
+            style: style,
+            shape: shape,
+            tint: tint,
+            intensity: fallbackIntensity,
+          );
     } else {
       // Inside a LiquidGlassGroup the group's single native view draws all
       // shapes (so they can merge); this container only reports geometry.

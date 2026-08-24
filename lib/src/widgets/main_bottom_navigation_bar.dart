@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:real_liquid_glass/real_liquid_glass.dart';
 
+import '../platform/runtime_platform.dart';
+import 'frosted_glass_surface.dart';
 import 'liquid_glass_layout.dart';
 
 class MainBottomNavigationBar extends StatelessWidget {
@@ -169,6 +171,15 @@ class _LiquidGlassBottomNavigation extends StatelessWidget {
                           showLabels: true,
                           tint: Theme.of(context).colorScheme.primary,
                           fallbackIntensity: fallbackGlassTransparency,
+                          fallbackSurfaceBuilder: runtimePlatform.isOhos
+                              ? (context) => FrostedGlassSurface(
+                                  borderRadius: BorderRadius.circular(
+                                    navigationBarHeight / 2,
+                                  ),
+                                  intensity: fallbackGlassTransparency,
+                                  child: const SizedBox.expand(),
+                                )
+                              : null,
                         ),
                       ),
                     );

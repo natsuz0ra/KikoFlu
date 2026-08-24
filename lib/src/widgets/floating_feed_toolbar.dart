@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:real_liquid_glass/real_liquid_glass.dart';
 
+import '../platform/runtime_platform.dart';
 import '../providers/settings_provider.dart';
+import 'frosted_glass_surface.dart';
 
 class FloatingFeedModeAction {
   const FloatingFeedModeAction({
@@ -52,8 +54,8 @@ class FloatingFeedToolbar extends StatelessWidget {
   /// Replaces the mode row with a dropdown when it cannot fit beside tools.
   ///
   /// Dense filter sets such as online bookmarks use the dropdown. Short,
-  /// primary navigation sets can disable this to keep every option visible;
-  /// in very narrow layouts their capsule scrolls horizontally instead.
+  /// primary navigation sets can disable this to divide the available capsule
+  /// width evenly between every option.
   final bool collapseModesWhenNeeded;
 
   @override
@@ -82,6 +84,11 @@ class FloatingFeedToolbar extends StatelessWidget {
               );
           final modesOverflow = requiredModeWidth > availableModeWidth;
           final useDropdown = collapseModesWhenNeeded && modesOverflow;
+          final fillAvailableWidth = !collapseModesWhenNeeded;
+          final availableModeContentWidth =
+              (availableModeWidth - surfacePadding)
+                  .clamp(0.0, availableModeWidth)
+                  .toDouble();
           final selectedIndex = modeActions.indexWhere(
             (action) => action.isSelected,
           );
@@ -96,21 +103,17 @@ class FloatingFeedToolbar extends StatelessWidget {
               ? desiredDropdownWidth
               : maxDropdownWidth;
 
-          final modeRow = Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final action in modeActions) _ModeButton(action: action),
-            ],
-          );
-          final modeContent = !collapseModesWhenNeeded && modesOverflow
-              ? SizedBox(
-                  width: availableModeWidth,
-                  child: SingleChildScrollView(
-                    key: const ValueKey('feed-mode-scroll'),
-                    scrollDirection: Axis.horizontal,
-                    child: modeRow,
-                  ),
-                )
+          final modeRow = fillAvailableWidth
+              ? _SlidingModeRow(actions: modeActions)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final action in modeActions)
+                      _ModeButton(action: action),
+                  ],
+                );
+          final modeContent = fillAvailableWidth
+              ? SizedBox(width: availableModeContentWidth, child: modeRow)
               : modeRow;
           final modeSurface = FloatingToolbarSurface(
             key: const ValueKey('feed-mode-capsule'),
@@ -256,14 +259,22 @@ class FloatingToolbarSurface extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final useLiquidGlass = ref.watch(liquidGlassNavigationProvider);
-    final fallbackGlassTransparency =
-        ref.watch(fallbackGlassTransparencyProvider);
+    final fallbackGlassTransparency = ref.watch(
+      fallbackGlassTransparencyProvider,
+    );
     final content = Material(
       type: MaterialType.transparency,
       child: Padding(padding: padding, child: child),
     );
 
     if (useLiquidGlass) {
+      if (runtimePlatform.isOhos) {
+        return FrostedGlassSurface(
+          borderRadius: BorderRadius.circular(_radius),
+          intensity: fallbackGlassTransparency,
+          child: content,
+        );
+      }
       return ClipRRect(
         borderRadius: BorderRadius.circular(_radius),
         child: LiquidGlassContainer(
@@ -381,10 +392,7 @@ class _FloatingToolbarPositionFollowerState
             showWhenUnlinked: false,
             child: Align(
               alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: constraints.maxWidth,
-                child: widget.child,
-              ),
+              child: SizedBox(width: constraints.maxWidth, child: widget.child),
             ),
           ),
           child: CompositedTransformTarget(
@@ -398,9 +406,15 @@ class _FloatingToolbarPositionFollowerState
 }
 
 class _ModeButton extends StatelessWidget {
-  const _ModeButton({required this.action});
+  const _ModeButton({
+    required this.action,
+    this.fitAvailableWidth = false,
+    this.showSelectionBackground = true,
+  });
 
   final FloatingFeedModeAction action;
+  final bool fitAvailableWidth;
+  final bool showSelectionBackground;
 
   @override
   Widget build(BuildContext context) {
@@ -419,37 +433,102 @@ class _ModeButton extends StatelessWidget {
             height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: action.isSelected
+              color: showSelectionBackground && action.isSelected
                   ? colorScheme.primaryContainer
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  action.icon,
-                  size: 18,
-                  color: action.isSelected
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  action.label,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: action.isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                    fontWeight: action.isSelected
-                        ? FontWeight.w700
-                        : FontWeight.w500,
+            child: TweenAnimationBuilder<Color?>(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              tween: ColorTween(
+                end: action.isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              builder: (context, foregroundColor, child) => Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: fitAvailableWidth
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  Icon(action.icon, size: 18, color: foregroundColor),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        action.label,
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: foregroundColor,
+                          fontWeight: action.isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SlidingModeRow extends StatelessWidget {
+  const _SlidingModeRow({required this.actions});
+
+  final List<FloatingFeedModeAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final selectedIndex = actions.indexWhere((action) => action.isSelected);
+    final effectiveIndex = selectedIndex < 0 ? 0 : selectedIndex;
+
+    return SizedBox(
+      height: 40,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = constraints.maxWidth / actions.length;
+          return Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                left: itemWidth * effectiveIndex,
+                top: 0,
+                width: itemWidth,
+                height: 40,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    key: const ValueKey('feed-mode-indicator'),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  for (final action in actions)
+                    Expanded(
+                      child: _ModeButton(
+                        action: action,
+                        fitAvailableWidth: true,
+                        showSelectionBackground: false,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -525,6 +604,13 @@ class ProgressiveTopBlur extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final surface = Theme.of(context).colorScheme.surface;
+    if (runtimePlatform.isOhos) {
+      // HarmonyOS top capsules and the bottom dock share
+      // FrostedGlassSurface. Avoid tinting the full top area underneath the
+      // capsules, otherwise their backdrop sample looks more opaque than the
+      // bottom dock even when both use the same intensity.
+      return const SizedBox.shrink();
+    }
     return IgnorePointer(
       child: SizedBox(
         height: height,

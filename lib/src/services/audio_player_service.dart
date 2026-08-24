@@ -48,6 +48,7 @@ class AudioPlayerService {
   final List<AudioTrack> _queue = [];
   int _currentIndex = 0;
   AudioHandler? _audioHandler;
+  Future<void>? _initialization;
   LoopMode _appLoopMode = LoopMode.off; // Track loop mode at app level
   String? _tempPlaybackFilePath; // 临时音频副本路径，用于规避字幕冲突
   Directory? _tempAudioDirectory;
@@ -108,7 +109,20 @@ class AudioPlayerService {
       StreamController<bool>.broadcast();
 
   // Initialize the service
-  Future<void> initialize() async {
+  Future<void> initialize() {
+    return _initialization ??= _initializeWithResetOnFailure();
+  }
+
+  Future<void> _initializeWithResetOnFailure() async {
+    try {
+      await _initialize();
+    } catch (_) {
+      _initialization = null;
+      rethrow;
+    }
+  }
+
+  Future<void> _initialize() async {
     // Initialize audio service handler for system integration
     _audioHandler = await AudioService.init(
       builder: () => _AudioPlayerHandler(this),
@@ -350,6 +364,11 @@ class AudioPlayerService {
     List<AudioTrack> tracks, {
     int startIndex = 0,
   }) async {
+    // Playback actions can race the post-frame app initialization. Waiting
+    // here prevents the first MediaItem from being dropped before
+    // AudioService has attached the native system media session.
+    await initialize();
+
     if (tracks.isEmpty) {
       await clearQueue();
       return;
@@ -713,6 +732,7 @@ class AudioPlayerService {
 
   // Playback controls
   Future<void> play() async {
+    await initialize();
     _sessionCompleted = false;
 
     // macOS specific: Ensure completion check timer is running
