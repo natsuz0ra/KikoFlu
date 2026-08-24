@@ -18,7 +18,8 @@ concurrency:
 
 env:
   FLUTTER_REPOSITORY: https://gitcode.com/CPF-Flutter/flutter_flutter.git
-  FLUTTER_REVISION: c83ab0015f5645de2c23f11e4c1e655af6065fd6
+  FLUTTER_REVISION: dcd184d2b8650f35120382a0db61231c6965912c
+  PUB_HOSTED_URL: https://pub.flutter-io.cn
 
 jobs:
   release:
@@ -76,7 +77,7 @@ jobs:
       - name: Resolve Flutter dependencies
         env:
           GIT_LFS_SKIP_SMUDGE: '1'
-        run: flutter pub get --enforce-lockfile
+        run: flutter pub get --enforce-lockfile --no-example
 
       - name: Build unsigned release HAP
         run: flutter build hap --release --no-pub --no-codesign
@@ -109,7 +110,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          : > release-notes.md
+          NOTES_PATH="release-notes/${TAG}.md"
+          if [ ! -f "$NOTES_PATH" ]; then
+            echo "::error::Reviewed release notes were not found at $NOTES_PATH."
+            exit 1
+          fi
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --clobber
@@ -118,10 +123,10 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target main \
               --title "$TAG" \
-              --notes-file release-notes.md
+              --notes-file "$NOTES_PATH"
           fi
 
           gh release edit "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --title "$TAG" \
-            --notes-file release-notes.md
+            --notes-file "$NOTES_PATH"
