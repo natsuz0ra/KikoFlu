@@ -440,24 +440,6 @@ class SZh extends S {
   String get uiSettingsSubtitle => '播放器、详情页、卡片等';
 
   @override
-  String get experimentalFeatures => '实验性功能';
-
-  @override
-  String get experimentalFeaturesDesc => '尝试可能变化或不稳定的平台特性。';
-
-  @override
-  String get liquidGlassTopBar => '顶栏沉浸光感';
-
-  @override
-  String get liquidGlassTopBarDesc => '为主页筛选按钮和顶部操作按钮使用沉浸光感效果。';
-
-  @override
-  String get liquidGlassBottomBar => '底栏沉浸光感';
-
-  @override
-  String get liquidGlassBottomBarDesc => '为底部导航栏和迷你播放器使用沉浸光感效果。';
-
-  @override
   String get liquidGlassNavigation => '液态玻璃导航';
 
   @override

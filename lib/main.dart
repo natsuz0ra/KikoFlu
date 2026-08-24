@@ -45,7 +45,6 @@ import 'src/utils/global_keys.dart';
 import 'src/utils/system_ui_style.dart';
 import 'src/widgets/screen_awake_observer.dart';
 import 'src/platform/runtime_platform.dart';
-import 'src/platform/native_shell_route_observer.dart';
 
 void _setEnv(String key, String value) {
   if (runtimePlatform.isWindows) {
@@ -500,7 +499,6 @@ class _KikoeruAppState extends ConsumerState<KikoeruApp>
 
         return MaterialApp(
           scaffoldMessengerKey: rootScaffoldMessengerKey,
-          navigatorObservers: [nativeShellRouteObserver],
           title: 'Kikoeru',
           debugShowCheckedModeBanner: false,
           localizationsDelegates: S.localizationsDelegates,

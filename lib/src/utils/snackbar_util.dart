@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/liquid_glass_layout.dart';
-
 /// SnackBar 工具类，提供统一的提示风格
 class SnackBarUtil {
   SnackBarUtil._();
@@ -12,21 +10,13 @@ class SnackBarUtil {
     SnackBar snackBar, {
     ScaffoldMessengerState? fallbackMessenger,
     void Function(Object error, StackTrace stackTrace)? onError,
-    double? dockGap,
   }) {
     try {
       final message = _extractMessage(snackBar.content);
       if (message == null || message.isEmpty) {
         final messenger =
             fallbackMessenger ?? ScaffoldMessenger.maybeOf(context);
-        messenger?.showSnackBar(
-          _withDockMargin(
-            context,
-            snackBar,
-            dockExtent: LiquidGlassDockScope.extentOf(context),
-            dockGap: dockGap,
-          ),
-        );
+        messenger?.showSnackBar(snackBar);
         return;
       }
 
@@ -36,83 +26,17 @@ class SnackBarUtil {
 
       if (backgroundColor == Colors.red ||
           backgroundColor == colorScheme.error) {
-        showError(context, message, duration: duration, dockGap: dockGap);
+        showError(context, message, duration: duration);
       } else if (backgroundColor == Colors.green) {
-        showSuccess(context, message, duration: duration, dockGap: dockGap);
+        showSuccess(context, message, duration: duration);
       } else if (backgroundColor == Colors.orange) {
-        showWarning(context, message, duration: duration, dockGap: dockGap);
+        showWarning(context, message, duration: duration);
       } else {
-        showInfo(context, message, duration: duration, dockGap: dockGap);
+        showInfo(context, message, duration: duration);
       }
     } catch (error, stackTrace) {
       onError?.call(error, stackTrace);
     }
-  }
-
-  static SnackBar _withDockMargin(
-    BuildContext context,
-    SnackBar snackBar, {
-    required double dockExtent,
-    double? dockGap,
-  }) {
-    if (dockExtent <= 0) return snackBar;
-
-    final margin = snackBar.margin ??
-        Theme.of(context).snackBarTheme.insetPadding ??
-        const EdgeInsets.fromLTRB(16, 5, 16, 8);
-    var resolvedMargin = margin.resolve(Directionality.of(context));
-    if (snackBar.width != null) {
-      final horizontal = ((MediaQuery.sizeOf(context).width - snackBar.width!) / 2)
-          .clamp(0.0, double.infinity)
-          .toDouble();
-      resolvedMargin = EdgeInsets.fromLTRB(
-        horizontal,
-        resolvedMargin.top,
-        horizontal,
-        resolvedMargin.bottom,
-      );
-    }
-
-    return SnackBar(
-      key: snackBar.key,
-      content: snackBar.content,
-      backgroundColor: snackBar.backgroundColor,
-      elevation: snackBar.elevation,
-      margin: resolvedMargin.copyWith(
-        bottom: dockGap == null
-            ? resolvedMargin.bottom + dockExtent
-            : dockExtent + dockGap,
-      ),
-      padding: snackBar.padding,
-      shape: snackBar.shape,
-      hitTestBehavior: snackBar.hitTestBehavior,
-      behavior: SnackBarBehavior.floating,
-      action: snackBar.action,
-      actionOverflowThreshold: snackBar.actionOverflowThreshold,
-      showCloseIcon: snackBar.showCloseIcon,
-      closeIconColor: snackBar.closeIconColor,
-      duration: snackBar.duration,
-      persist: snackBar.persist,
-      animation: snackBar.animation,
-      onVisible: snackBar.onVisible,
-      dismissDirection: snackBar.dismissDirection,
-      clipBehavior: snackBar.clipBehavior,
-    );
-  }
-
-  static void _show(
-    BuildContext context,
-    SnackBar snackBar, {
-    double? dockGap,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      _withDockMargin(
-        context,
-        snackBar,
-        dockExtent: LiquidGlassDockScope.extentOf(context),
-        dockGap: dockGap,
-      ),
-    );
   }
 
   static String? _extractMessage(Widget content) {
@@ -140,10 +64,8 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 2),
-    double? dockGap,
   }) {
-    _show(
-      context,
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
@@ -167,7 +89,6 @@ class SnackBarUtil {
         backgroundColor: Theme.of(context).colorScheme.primary,
         duration: duration,
       ),
-      dockGap: dockGap,
     );
   }
 
@@ -176,10 +97,8 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 4),
-    double? dockGap,
   }) {
-    _show(
-      context,
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
@@ -203,7 +122,6 @@ class SnackBarUtil {
         backgroundColor: Theme.of(context).colorScheme.error,
         duration: duration,
       ),
-      dockGap: dockGap,
     );
   }
 
@@ -212,15 +130,13 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 3),
-    double? dockGap,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     // 使用 tertiary 或 secondary 作为警告色
     final warningColor = colorScheme.tertiary;
     final onWarningColor = colorScheme.onTertiary;
 
-    _show(
-      context,
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
@@ -244,7 +160,6 @@ class SnackBarUtil {
         backgroundColor: warningColor,
         duration: duration,
       ),
-      dockGap: dockGap,
     );
   }
 
@@ -253,10 +168,8 @@ class SnackBarUtil {
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 2),
-    double? dockGap,
   }) {
-    _show(
-      context,
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
@@ -280,7 +193,6 @@ class SnackBarUtil {
         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
         duration: duration,
       ),
-      dockGap: dockGap,
     );
   }
 
@@ -290,8 +202,7 @@ class SnackBarUtil {
     String message, {
     Duration duration = const Duration(seconds: 30),
   }) {
-    _show(
-      context,
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [

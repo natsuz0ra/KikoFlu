@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,10 +16,6 @@ import '../models/sort_options.dart';
 import '../utils/subtitle_filter.dart';
 import '../utils/l10n_extensions.dart';
 import '../utils/system_ui_style.dart';
-import '../providers/settings_provider.dart';
-import '../platform/runtime_platform.dart';
-import '../platform/harmony_channel.dart';
-import '../platform/harmony_native_overlay.dart';
 
 class WorksScreen extends ConsumerStatefulWidget {
   const WorksScreen({super.key, required this.reselectController});
@@ -35,10 +29,8 @@ class WorksScreen extends ConsumerStatefulWidget {
 class _WorksScreenState extends ConsumerState<WorksScreen>
     with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
-  HarmonyNativeTopActionRegistration? _nativeTopActionRegistration;
 
   int _slideDirection = 0;
-  bool _sortDialogOpen = false;
   final Map<DisplayMode, double> _scrollPositions = {
     for (final mode in DisplayMode.values) mode: 0.0,
   };
@@ -49,11 +41,6 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
   @override
   void initState() {
     super.initState();
-    HarmonyChannel.nativeTopBarActive.addListener(_handleNativeTopChanged);
-    _nativeTopActionRegistration = HarmonyChannel.setNativeTopActionHandler(
-      HarmonyTopBarPage.works,
-      _handleNativeTopAction,
-    );
     // 只在首次加载时获取数据，如果已有数据则不重新加载
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final worksState = ref.read(worksProvider);
@@ -65,17 +52,13 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
 
   @override
   void dispose() {
-    HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
-    _nativeTopActionRegistration?.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _showSortDialog(BuildContext context) async {
-    if (_sortDialogOpen) return;
+  void _showSortDialog(BuildContext context) {
     final displayMode = ref.read(worksProvider).displayMode;
-    final isRecommendMode =
-        displayMode == DisplayMode.popular ||
+    final isRecommendMode = displayMode == DisplayMode.popular ||
         displayMode == DisplayMode.recommended;
 
     if (isRecommendMode) {
@@ -89,29 +72,21 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     }
 
     final state = ref.read(worksProvider);
-    _sortDialogOpen = true;
-    try {
-      await showWithNativeShellSuppressed<void>(
-        context,
-        () => showDialog<void>(
-          context: context,
-          builder: (context) => CommonSortDialog(
-            currentOption: state.sortOption,
-            currentDirection: state.sortDirection,
-            availableOptions: SortOrder.values
-                .where((option) => option != SortOrder.updatedAt)
-                .toList(),
-            onSort: (option, direction) {
-              ref.read(worksProvider.notifier).setSortOption(option);
-              ref.read(worksProvider.notifier).setSortDirection(direction);
-            },
-            autoClose: true,
-          ),
-        ),
-      );
-    } finally {
-      _sortDialogOpen = false;
-    }
+    showDialog(
+      context: context,
+      builder: (context) => CommonSortDialog(
+        currentOption: state.sortOption,
+        currentDirection: state.sortDirection,
+        availableOptions: SortOrder.values
+            .where((option) => option != SortOrder.updatedAt)
+            .toList(),
+        onSort: (option, direction) {
+          ref.read(worksProvider.notifier).setSortOption(option);
+          ref.read(worksProvider.notifier).setSortDirection(direction);
+        },
+        autoClose: true,
+      ),
+    );
   }
 
   IconData _getLayoutIcon(LayoutType layoutType) {
@@ -166,40 +141,6 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     });
   }
 
-  void _handleNativeTopChanged() {
-    if (mounted) setState(() {});
-  }
-
-  void _handleNativeTopAction(HarmonyNativeTopAction event) {
-    if (!mounted) return;
-    switch (event.action) {
-      case 'mode_all':
-        _changeDisplayMode(DisplayMode.all);
-        break;
-      case 'mode_popular':
-        _changeDisplayMode(DisplayMode.popular);
-        break;
-      case 'mode_recommended':
-        _changeDisplayMode(DisplayMode.recommended);
-        break;
-      case 'layout':
-        ref.read(worksProvider.notifier).toggleLayoutType();
-        break;
-      case 'subtitle':
-        ref.read(worksProvider.notifier).toggleSubtitleFilter();
-        break;
-      case 'sort':
-        unawaited(_showSortDialog(context));
-        break;
-    }
-  }
-
-  String _layoutIconId(LayoutType layoutType) => switch (layoutType) {
-    LayoutType.bigGrid => 'grid_3x3',
-    LayoutType.smallGrid => 'view_list',
-    LayoutType.list => 'view_agenda',
-  };
-
   void _scrollToTopAndRefresh() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -240,152 +181,102 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // 必须调用以保持状态
-    ref.listen<WorksState>(worksProvider, (previous, next) {
-      if (!mounted) return;
-      if (previous == null) return;
-      if (previous.displayMode == next.displayMode) return;
+    ref.listen<WorksState>(
+      worksProvider,
+      (previous, next) {
+        if (!mounted) return;
+        if (previous == null) return;
+        if (previous.displayMode == next.displayMode) return;
 
-      final prevIndex = DisplayMode.values.indexOf(previous.displayMode);
-      final nextIndex = DisplayMode.values.indexOf(next.displayMode);
+        final prevIndex = DisplayMode.values.indexOf(previous.displayMode);
+        final nextIndex = DisplayMode.values.indexOf(next.displayMode);
 
-      setState(() {
-        _slideDirection = nextIndex >= prevIndex ? 1 : -1;
-      });
+        setState(() {
+          _slideDirection = nextIndex >= prevIndex ? 1 : -1;
+        });
 
-      _restoreScrollPosition(next.displayMode);
-    });
+        _restoreScrollPosition(next.displayMode);
+      },
+    );
     final worksState = ref.watch(worksProvider);
-    final isRecommendMode =
-        worksState.displayMode == DisplayMode.popular ||
+    final isRecommendMode = worksState.displayMode == DisplayMode.popular ||
         worksState.displayMode == DisplayMode.recommended;
 
     final horizontalPadding = FloatingToolbarLayout.horizontalPadding(context);
     final topPadding = MediaQuery.paddingOf(context).top;
-    final toolbarTop = FloatingToolbarLayout.toolbarTop(topPadding);
-    final contentTopPadding = FloatingToolbarLayout.contentTopAfterRows(
-      topPadding,
-    );
-    final systemOverlayStyle = transparentSystemBarsForBrightness(
-      Theme.of(context).brightness,
-    );
-    final requestNativeTopGlass =
-        runtimePlatform.usesNativeHarmonyGlass &&
-        ref.watch(liquidGlassTopBarProvider);
-    final useNativeTopGlass =
-        requestNativeTopGlass &&
-        HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.works);
-    if (requestNativeTopGlass) {
-      HarmonyChannel.stageNativeTopBarData(
-        page: HarmonyTopBarPage.works,
-        modeLabels: [
-          S.of(context).displayModeAll,
-          S.of(context).displayModePopular,
-          S.of(context).displayModeRecommended,
-        ],
-        modeIcons: const ['grid_view', 'local_fire', 'auto_awesome'],
-        modeActions: const ['mode_all', 'mode_popular', 'mode_recommended'],
-        selectedMode: worksState.displayMode.index,
-        toolIcons: [
-          _layoutIconId(worksState.layoutType),
-          SubtitleFilterMode.fromValue(worksState.subtitleFilter).isActive
-              ? 'closed_caption'
-              : 'closed_caption_disabled',
-          'sort',
-        ],
-        toolActions: const ['layout', 'subtitle', 'sort'],
-        toolSelected: [
-          false,
-          SubtitleFilterMode.fromValue(worksState.subtitleFilter).isActive,
-          false,
-        ],
-        toolEnabled: [true, true, !isRecommendMode],
-        colors: harmonyShellColorsFromColorScheme(
-          Theme.of(context).colorScheme,
-        ),
-      );
-    }
+    final toolbarTop = topPadding + 8;
+    final contentTopPadding = toolbarTop + 56;
+    final systemOverlayStyle =
+        transparentSystemBarsForBrightness(Theme.of(context).brightness);
 
     return AnnotatedRegion(
-          value: systemOverlayStyle,
-          child: Scaffold(
-            floatingActionButton: const DownloadFab(),
-            body: Stack(
-              children: [
-                Positioned.fill(
-                  child: GestureDetector(
-                    onHorizontalDragEnd: _handleSwipe,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
-                      transitionBuilder: (child, animation) {
-                        final direction = _slideDirection == 0
-                            ? 0.0
-                            : (_slideDirection > 0 ? 0.12 : -0.12);
-                        final offsetAnimation = Tween<Offset>(
-                          begin: Offset(direction, 0),
-                          end: Offset.zero,
-                        ).animate(animation);
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: KeyedSubtree(
-                        key: ValueKey(worksState.displayMode),
-                        child: _buildBody(
-                          worksState,
-                          EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            contentTopPadding,
-                            horizontalPadding,
-                            horizontalPadding,
-                          ),
-                          refreshIndicatorEdgeOffset: useNativeTopGlass
-                              ? contentTopPadding
-                              : 0,
-                          refreshIndicatorDisplacement: useNativeTopGlass
-                              ? FloatingToolbarLayout
-                                    .nativeRefreshIndicatorDisplacement
-                              : 40,
-                        ),
+      value: systemOverlayStyle,
+      child: Scaffold(
+        floatingActionButton: const DownloadFab(),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onHorizontalDragEnd: _handleSwipe,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  transitionBuilder: (child, animation) {
+                    final direction = _slideDirection == 0
+                        ? 0.0
+                        : (_slideDirection > 0 ? 0.12 : -0.12);
+                    final offsetAnimation = Tween<Offset>(
+                      begin: Offset(direction, 0),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey(worksState.displayMode),
+                    child: _buildBody(
+                      worksState,
+                      EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        contentTopPadding,
+                        horizontalPadding,
+                        horizontalPadding,
                       ),
                     ),
                   ),
                 ),
-                if (!useNativeTopGlass)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: ProgressiveTopBlur(height: topPadding + 72),
-                  ),
-                if (!useNativeTopGlass)
-                  Positioned(
-                    top: toolbarTop,
-                    left: horizontalPadding,
-                    right: horizontalPadding,
-                    child: RepaintBoundary(
-                      child: FloatingFeedToolbar(
-                        collapseModesWhenNeeded: false,
-                        modeActions: _buildModeActions(context, worksState),
-                        toolActions: _buildToolActions(
-                          context,
-                          worksState,
-                          isRecommendMode: isRecommendMode,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-        )
-        .scrollToTopOnStatusBar(_scrollController)
-        .onNavigationTabReselect(
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ProgressiveTopBlur(height: topPadding + 72),
+            ),
+            Positioned(
+              top: toolbarTop,
+              left: horizontalPadding,
+              right: horizontalPadding,
+              child: FloatingFeedToolbar(
+                collapseModesWhenNeeded: false,
+                modeActions: _buildModeActions(context, worksState),
+                toolActions: _buildToolActions(
+                  context,
+                  worksState,
+                  isRecommendMode: isRecommendMode,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).scrollToTopOnStatusBar(_scrollController).onNavigationTabReselect(
           controller: widget.reselectController,
           onReselect: _scrollToTopAndRefresh,
         );
@@ -422,9 +313,8 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     WorksState worksState, {
     required bool isRecommendMode,
   }) {
-    final subtitleMode = SubtitleFilterMode.fromValue(
-      worksState.subtitleFilter,
-    );
+    final subtitleMode =
+        SubtitleFilterMode.fromValue(worksState.subtitleFilter);
     return [
       FloatingFeedToolAction(
         icon: _getLayoutIcon(worksState.layoutType),
@@ -448,26 +338,14 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
     ];
   }
 
-  Widget _buildBody(
-    WorksState worksState,
-    EdgeInsetsGeometry padding, {
-    double refreshIndicatorEdgeOffset = 0,
-    double refreshIndicatorDisplacement = 40,
-  }) {
-    return _buildLayoutView(
-      worksState,
-      padding,
-      refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
-      refreshIndicatorDisplacement: refreshIndicatorDisplacement,
-    );
+  Widget _buildBody(WorksState worksState, EdgeInsetsGeometry padding) {
+    return _buildLayoutView(worksState, padding);
   }
 
   Widget _buildLayoutView(
     WorksState worksState,
-    EdgeInsetsGeometry padding, {
-    required double refreshIndicatorEdgeOffset,
-    required double refreshIndicatorDisplacement,
-  }) {
+    EdgeInsetsGeometry padding,
+  ) {
     final notifier = ref.read(worksProvider.notifier);
     return WorksGridView(
       works: worksState.works,
@@ -481,13 +359,10 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
       hasMore: worksState.hasMore,
       error: worksState.error,
       loadMoreError: null,
-      onLoadMore: worksState.displayMode == DisplayMode.all
-          ? null
-          : notifier.loadMore,
+      onLoadMore:
+          worksState.displayMode == DisplayMode.all ? null : notifier.loadMore,
       onRetry: notifier.refresh,
       onRefresh: worksState.works.isEmpty ? null : notifier.refresh,
-      refreshIndicatorEdgeOffset: refreshIndicatorEdgeOffset,
-      refreshIndicatorDisplacement: refreshIndicatorDisplacement,
       pagination: worksState.displayMode == DisplayMode.all
           ? VirtualizedPagination(
               currentPage: worksState.currentPage,
@@ -503,17 +378,15 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
               scrollCurve: Curves.easeInOut,
               extraBuilder: worksState.rawWorks.length > worksState.works.length
                   ? (context) => Text(
-                      S
-                          .of(context)
-                          .pageExcludedNWorks(
-                            worksState.rawWorks.length -
-                                worksState.works.length,
-                          ),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                    )
+                        S.of(context).pageExcludedNWorks(
+                              worksState.rawWorks.length -
+                                  worksState.works.length,
+                            ),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      )
                   : null,
             )
           : null,
@@ -547,8 +420,8 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
             Text(
               error.toString(),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -578,8 +451,8 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
             Text(
               S.of(context).checkNetworkOrRetry,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
           ],
         ),
@@ -609,9 +482,7 @@ class _WorksScreenState extends ConsumerState<WorksScreen>
             if (worksState.rawWorks.length > worksState.works.length) ...[
               const SizedBox(height: 8),
               Text(
-                S
-                    .of(context)
-                    .excludedNWorks(
+                S.of(context).excludedNWorks(
                       worksState.rawWorks.length - worksState.works.length,
                     ),
                 style: TextStyle(

@@ -11,7 +11,6 @@ class OverscrollNextPageDetector extends StatefulWidget {
   final String? promptText;
   final String? releaseText;
   final double triggerThreshold;
-  final double bottomInset;
 
   const OverscrollNextPageDetector({
     super.key,
@@ -22,7 +21,6 @@ class OverscrollNextPageDetector extends StatefulWidget {
     this.promptText,
     this.releaseText,
     this.triggerThreshold = 100.0,
-    this.bottomInset = 0,
   });
 
   @override
@@ -46,7 +44,7 @@ class _OverscrollNextPageDetectorState
         ),
         if (_overscroll > 0 && widget.hasNextPage && !widget.isLoading)
           Positioned(
-            bottom: widget.bottomInset,
+            bottom: 0,
             left: 0,
             right: 0,
             height: _overscroll.clamp(0.0, 200.0),

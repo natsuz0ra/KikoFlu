@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../platform/harmony_channel.dart';
-import '../platform/native_shell_route_observer.dart';
-
 import '../screens/search_result_screen.dart';
 
 enum MetadataChipTone {
@@ -168,8 +165,7 @@ class MetadataSearchChip extends StatelessWidget {
 
     Navigator.push(
       context,
-      HarmonyNativeTopPageRoute(
-        nativeTopPage: HarmonyTopBarPage.searchResult,
+      MaterialPageRoute(
         builder: (context) => SearchResultScreen(
           keyword: searchKeyword,
           searchTypeLabel: searchTypeLabel,

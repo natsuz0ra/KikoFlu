@@ -23,8 +23,6 @@ import '../utils/subtitle_library_display.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/responsive_dialog.dart';
 import '../widgets/floating_feed_toolbar.dart';
-import '../platform/harmony_channel.dart';
-import '../platform/harmony_secondary_toolbar.dart';
 
 /// 字幕库界面
 class SubtitleLibraryScreen extends ConsumerStatefulWidget {
@@ -33,15 +31,11 @@ class SubtitleLibraryScreen extends ConsumerStatefulWidget {
     this.toolbarTop = 8,
     this.collapsedToolbarTop,
     this.primaryToolbarVisible,
-    this.nativeToolbarController,
-    this.useNativeToolbar = false,
   });
 
   final double toolbarTop;
   final double? collapsedToolbarTop;
   final ValueListenable<bool>? primaryToolbarVisible;
-  final HarmonySecondaryToolbarController? nativeToolbarController;
-  final bool useNativeToolbar;
 
   @override
   ConsumerState<SubtitleLibraryScreen> createState() =>
@@ -68,34 +62,13 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
   @override
   void initState() {
     super.initState();
-    widget.nativeToolbarController?.attachActionHandler(
-      this,
-      _handleNativeToolbarAction,
-    );
-    _cacheUpdateSubscription = SubtitleLibraryService.onCacheUpdated.listen((
-      _,
-    ) {
+    _cacheUpdateSubscription =
+        SubtitleLibraryService.onCacheUpdated.listen((_) {
       if (mounted) {
         _loadFiles();
       }
     });
     _initRootPath();
-  }
-
-  @override
-  void didUpdateWidget(covariant SubtitleLibraryScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (identical(
-      oldWidget.nativeToolbarController,
-      widget.nativeToolbarController,
-    )) {
-      return;
-    }
-    oldWidget.nativeToolbarController?.detachActionHandler(this);
-    widget.nativeToolbarController?.attachActionHandler(
-      this,
-      _handleNativeToolbarAction,
-    );
   }
 
   Future<void> _initRootPath() async {
@@ -110,157 +83,9 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
 
   @override
   void dispose() {
-    widget.nativeToolbarController?.detachActionHandler(this);
     _cacheUpdateSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _handleNativeToolbarAction(HarmonyNativeTopAction event) {
-    if (!mounted) return;
-    switch (event.action) {
-      case 'subtitles_back':
-        _navigateUp();
-        break;
-      case 'subtitles_select':
-      case 'subtitles_exit_selection':
-        _toggleSelectionMode();
-        break;
-      case 'subtitles_select_all':
-        _selectAll();
-        break;
-      case 'subtitles_deselect_all':
-        _deselectAll();
-        break;
-      case 'subtitles_delete':
-        _deleteSelectedItems();
-        break;
-      case 'subtitles_search':
-        setState(() => _isSearching = true);
-        break;
-      case 'subtitles_close_search':
-        _closeSearch();
-        break;
-      case 'subtitles_search_query':
-        final value = event.value ?? '';
-        if (_searchController.text != value) {
-          _searchController.value = TextEditingValue(
-            text: value,
-            selection: TextSelection.collapsed(offset: value.length),
-          );
-        }
-        setState(() => _searchQuery = value);
-        break;
-      case 'subtitles_clear_search':
-        _searchController.clear();
-        setState(() => _searchQuery = '');
-        break;
-      case 'subtitles_refresh':
-        _loadFiles(forceRefresh: true);
-        break;
-      case 'subtitles_info':
-        _showLibraryInfoDialog();
-        break;
-    }
-  }
-
-  void _closeSearch() {
-    setState(() {
-      _isSearching = false;
-      _searchQuery = '';
-      _searchController.clear();
-    });
-  }
-
-  void _publishNativeToolbar() {
-    final controller = widget.nativeToolbarController;
-    if (controller == null) return;
-
-    const toolIcons = ['refresh', 'info_outline'];
-    const toolActions = ['subtitles_refresh', 'subtitles_info'];
-    const toolSelected = [false, false];
-    const toolEnabled = [true, true];
-
-    if (_isSelectionMode) {
-      final allPaths = SubtitleLibraryTree.collectPaths(_files);
-      final allSelected =
-          allPaths.isNotEmpty && allPaths.every(_selectedPaths.contains);
-      final canDelete = _selectedPaths.isNotEmpty;
-      controller.publish(
-        HarmonySecondaryToolbarData(
-          modeLabels: [
-            S.of(context).exitSelection,
-            allSelected ? S.of(context).deselectAll : S.of(context).selectAll,
-            if (canDelete) S.of(context).delete,
-          ],
-          modeIcons: [
-            'close',
-            allSelected ? 'deselect' : 'select_all',
-            if (canDelete) 'delete',
-          ],
-          modeActions: [
-            'subtitles_exit_selection',
-            allSelected ? 'subtitles_deselect_all' : 'subtitles_select_all',
-            if (canDelete) 'subtitles_delete',
-          ],
-          modeSelected: [false, false, if (canDelete) false],
-          modeEnabled: [true, true, if (canDelete) true],
-          toolIcons: toolIcons,
-          toolActions: toolActions,
-          toolSelected: toolSelected,
-          toolEnabled: toolEnabled,
-        ),
-      );
-      return;
-    }
-
-    if (_isSearching) {
-      final canClear = _searchQuery.isNotEmpty;
-      controller.publish(
-        HarmonySecondaryToolbarData(
-          layout: HarmonySecondaryToolbarLayout.search,
-          modeLabels: [S.of(context).close, if (canClear) S.of(context).clear],
-          modeIcons: ['arrow_back', if (canClear) 'clear'],
-          modeActions: [
-            'subtitles_close_search',
-            if (canClear) 'subtitles_clear_search',
-          ],
-          modeSelected: [false, if (canClear) false],
-          modeEnabled: [true, if (canClear) true],
-          inputValue: _searchQuery,
-          inputHint: S.of(context).searchSubtitles,
-          inputAction: 'subtitles_search_query',
-          toolIcons: toolIcons,
-          toolActions: toolActions,
-          toolSelected: toolSelected,
-          toolEnabled: toolEnabled,
-        ),
-      );
-      return;
-    }
-
-    final canNavigateUp = _rootPath != null && _currentPath != _rootPath;
-    controller.publish(
-      HarmonySecondaryToolbarData(
-        modeLabels: [
-          S.of(context).back,
-          S.of(context).select,
-          S.of(context).search,
-        ],
-        modeIcons: const ['arrow_back', 'checklist', 'search'],
-        modeActions: const [
-          'subtitles_back',
-          'subtitles_select',
-          'subtitles_search',
-        ],
-        modeSelected: const [false, false, false],
-        modeEnabled: [canNavigateUp, true, true],
-        toolIcons: toolIcons,
-        toolActions: toolActions,
-        toolSelected: toolSelected,
-        toolEnabled: toolEnabled,
-      ),
-    );
   }
 
   void _toggleSelectionMode() {
@@ -348,9 +173,8 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          S.of(context).deletedNOfTotalItems(successCount, totalCount),
-        ),
+        content:
+            Text(S.of(context).deletedNOfTotalItems(successCount, totalCount)),
         backgroundColor: successCount > 0 ? Colors.green : Colors.red,
       ),
     );
@@ -506,9 +330,8 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
   }
 
   void Function(String)? _showProgressDialog(String initialMessage) {
-    final ValueNotifier<String> progressNotifier = ValueNotifier(
-      initialMessage,
-    );
+    final ValueNotifier<String> progressNotifier =
+        ValueNotifier(initialMessage);
 
     showDialog(
       context: context,
@@ -523,7 +346,10 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text(message, textAlign: TextAlign.center),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
@@ -631,10 +457,8 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
         ),
         ListTile(
           leading: const Icon(Icons.delete, color: Colors.red),
-          title: Text(
-            S.of(context).delete,
-            style: const TextStyle(color: Colors.red),
-          ),
+          title: Text(S.of(context).delete,
+              style: const TextStyle(color: Colors.red)),
           onTap: () {
             Navigator.pop(context);
             _deleteItem(item);
@@ -888,15 +712,12 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
   }
 
   List<Map<String, dynamic>> _filterFiles(
-    List<Map<String, dynamic>> files,
-    String query,
-  ) {
+      List<Map<String, dynamic>> files, String query) {
     return SubtitleLibraryTree.filterFiles(files, query);
   }
 
   @override
   Widget build(BuildContext context) {
-    _publishNativeToolbar();
     // 监听刷新触发器（例如下载路径更改时）
     ref.listen<int>(subtitleLibraryRefreshTriggerProvider, (previous, next) {
       if (previous != next) {
@@ -944,8 +765,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
                 ),
               ),
             ),
-            if (!widget.useNativeToolbar &&
-                widget.primaryToolbarVisible == null)
+            if (widget.primaryToolbarVisible == null)
               Positioned(
                 top: widget.toolbarTop,
                 left: FloatingToolbarLayout.horizontalPadding(context),
@@ -964,7 +784,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
                   ],
                 ),
               )
-            else if (!widget.useNativeToolbar)
+            else
               FloatingToolbarPositionFollower(
                 primaryToolbarVisible: widget.primaryToolbarVisible!,
                 visibleTop: widget.toolbarTop,
@@ -993,17 +813,16 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
                   child: Text(
                     _stats == null
                         ? ''
-                        : S
-                              .of(context)
-                              .nFilesWithSize(
-                                _stats!.totalFiles,
-                                _stats!.sizeFormatted,
-                              ),
+                        : S.of(context).nFilesWithSize(
+                              _stats!.totalFiles,
+                              _stats!.sizeFormatted,
+                            ),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withValues(alpha: 0.8),
+                        ),
                   ),
                 ),
               ),
@@ -1014,10 +833,7 @@ class _SubtitleLibraryScreenState extends ConsumerState<SubtitleLibraryScreen> {
   }
 
   void _toggleItemSelection(
-    String path,
-    bool isFolder,
-    Map<String, dynamic> item,
-  ) {
+      String path, bool isFolder, Map<String, dynamic> item) {
     setState(() {
       if (_selectedPaths.contains(path)) {
         _selectedPaths.remove(path);

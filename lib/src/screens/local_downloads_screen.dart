@@ -22,8 +22,6 @@ import '../widgets/privacy_blur_cover.dart';
 import '../widgets/status_bar_scroll_to_top.dart';
 import '../widgets/virtualized_sliver_collection.dart';
 import '../widgets/floating_feed_toolbar.dart';
-import '../platform/harmony_channel.dart';
-import '../platform/harmony_secondary_toolbar.dart';
 
 final _log = LogService.instance;
 
@@ -34,15 +32,11 @@ class LocalDownloadsScreen extends ConsumerStatefulWidget {
     this.toolbarTop = 8,
     this.collapsedToolbarTop,
     this.primaryToolbarVisible,
-    this.nativeToolbarController,
-    this.useNativeToolbar = false,
   });
 
   final double toolbarTop;
   final double? collapsedToolbarTop;
   final ValueListenable<bool>? primaryToolbarVisible;
-  final HarmonySecondaryToolbarController? nativeToolbarController;
-  final bool useNativeToolbar;
 
   @override
   ConsumerState<LocalDownloadsScreen> createState() =>
@@ -66,7 +60,6 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
   // 排序相关
   SortOrder _sortOrder = SortOrder.downloadDate;
   SortDirection _sortDirection = SortDirection.desc;
-  Map<int, List<DownloadTask>> _latestGroupedTasks = const {};
 
   void _showSnackBarSafe(SnackBar snackBar) {
     if (!mounted) return;
@@ -84,167 +77,9 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
-    super.initState();
-    widget.nativeToolbarController?.attachActionHandler(
-      this,
-      _handleNativeToolbarAction,
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant LocalDownloadsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (identical(
-      oldWidget.nativeToolbarController,
-      widget.nativeToolbarController,
-    )) {
-      return;
-    }
-    oldWidget.nativeToolbarController?.detachActionHandler(this);
-    widget.nativeToolbarController?.attachActionHandler(
-      this,
-      _handleNativeToolbarAction,
-    );
-  }
-
-  @override
   void dispose() {
-    widget.nativeToolbarController?.detachActionHandler(this);
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _handleNativeToolbarAction(HarmonyNativeTopAction event) {
-    if (!mounted) return;
-    switch (event.action) {
-      case 'downloads_select':
-      case 'downloads_exit_selection':
-        _toggleSelectionMode();
-        break;
-      case 'downloads_search':
-      case 'downloads_close_search':
-        _toggleSearch();
-        break;
-      case 'downloads_select_all':
-        _selectAll(_latestGroupedTasks);
-        break;
-      case 'downloads_deselect_all':
-        _deselectAll();
-        break;
-      case 'downloads_delete':
-        _deleteSelectedWorks(_latestGroupedTasks);
-        break;
-      case 'downloads_refresh':
-        _refreshMetadata();
-        break;
-      case 'downloads_sort':
-        _showSortDialog();
-        break;
-      case 'downloads_search_query':
-        final value = event.value ?? '';
-        if (_searchController.text != value) {
-          _searchController.value = TextEditingValue(
-            text: value,
-            selection: TextSelection.collapsed(offset: value.length),
-          );
-        }
-        setState(() {
-          _searchQuery = value;
-          _currentPage = 1;
-        });
-        break;
-      case 'downloads_clear_search':
-        _searchController.clear();
-        setState(() {
-          _searchQuery = '';
-          _currentPage = 1;
-        });
-        break;
-    }
-  }
-
-  void _publishNativeToolbar() {
-    final controller = widget.nativeToolbarController;
-    if (controller == null) return;
-
-    const toolIcons = ['refresh', 'sort'];
-    const toolActions = ['downloads_refresh', 'downloads_sort'];
-    const toolSelected = [false, false];
-    const toolEnabled = [true, true];
-
-    if (_isSelectionMode) {
-      final allSelected =
-          _latestGroupedTasks.isNotEmpty &&
-          _selectedWorkIds.length == _latestGroupedTasks.length;
-      final canDelete = _selectedWorkIds.isNotEmpty;
-      controller.publish(
-        HarmonySecondaryToolbarData(
-          modeLabels: [
-            S.of(context).exitSelection,
-            allSelected ? S.of(context).deselectAll : S.of(context).selectAll,
-            if (canDelete) S.of(context).delete,
-          ],
-          modeIcons: [
-            'close',
-            allSelected ? 'deselect' : 'select_all',
-            if (canDelete) 'delete',
-          ],
-          modeActions: [
-            'downloads_exit_selection',
-            allSelected ? 'downloads_deselect_all' : 'downloads_select_all',
-            if (canDelete) 'downloads_delete',
-          ],
-          modeSelected: [false, false, if (canDelete) false],
-          modeEnabled: [true, true, if (canDelete) true],
-          title: S.of(context).selectedCount(_selectedWorkIds.length),
-          toolIcons: toolIcons,
-          toolActions: toolActions,
-          toolSelected: toolSelected,
-          toolEnabled: toolEnabled,
-        ),
-      );
-      return;
-    }
-
-    if (_isSearchVisible) {
-      final canClear = _searchQuery.isNotEmpty;
-      controller.publish(
-        HarmonySecondaryToolbarData(
-          layout: HarmonySecondaryToolbarLayout.search,
-          modeLabels: [S.of(context).close, if (canClear) S.of(context).clear],
-          modeIcons: ['arrow_back', if (canClear) 'clear'],
-          modeActions: [
-            'downloads_close_search',
-            if (canClear) 'downloads_clear_search',
-          ],
-          modeSelected: [false, if (canClear) false],
-          modeEnabled: [true, if (canClear) true],
-          inputValue: _searchQuery,
-          inputHint: S.of(context).searchDownloads,
-          inputAction: 'downloads_search_query',
-          toolIcons: toolIcons,
-          toolActions: toolActions,
-          toolSelected: toolSelected,
-          toolEnabled: toolEnabled,
-        ),
-      );
-      return;
-    }
-
-    controller.publish(
-      HarmonySecondaryToolbarData(
-        modeLabels: [S.of(context).select, S.of(context).search],
-        modeIcons: const ['checklist', 'search'],
-        modeActions: const ['downloads_select', 'downloads_search'],
-        modeSelected: const [false, false],
-        modeEnabled: const [true, true],
-        toolIcons: toolIcons,
-        toolActions: toolActions,
-        toolSelected: toolSelected,
-        toolEnabled: toolEnabled,
-      ),
-    );
   }
 
   void _scrollToTop() {
@@ -423,8 +258,7 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
 
   // 删除选中的作品
   Future<void> _deleteSelectedWorks(
-    Map<int, List<DownloadTask>> groupedTasks,
-  ) async {
+      Map<int, List<DownloadTask>> groupedTasks) async {
     if (_selectedWorkIds.isEmpty) return;
 
     final l10n = S.of(context);
@@ -488,13 +322,17 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
             if (errorMessage != null && successCount > 0) {
               _showSnackBarSafe(
                 SnackBar(
-                  content: Text(l10n.deletedNOfTotal(successCount, totalCount)),
-                ),
+                    content:
+                        Text(l10n.deletedNOfTotal(successCount, totalCount))),
               );
             } else if (errorMessage != null) {
-              _showSnackBarSafe(SnackBar(content: Text(errorMessage)));
+              _showSnackBarSafe(
+                SnackBar(content: Text(errorMessage)),
+              );
             } else {
-              _showSnackBarSafe(SnackBar(content: Text(l10n.deleted)));
+              _showSnackBarSafe(
+                SnackBar(content: Text(l10n.deleted)),
+              );
             }
           }
         });
@@ -520,7 +358,10 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
         title: S.of(context).sortOptions,
         currentOption: _sortOrder,
         currentDirection: _sortDirection,
-        availableOptions: const [SortOrder.downloadDate, SortOrder.workId],
+        availableOptions: const [
+          SortOrder.downloadDate,
+          SortOrder.workId,
+        ],
         onSort: (option, direction) {
           setState(() {
             _sortOrder = option;
@@ -547,8 +388,7 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
 
   // 过滤作品（根据搜索关键词）
   Map<int, List<DownloadTask>> _filterTasks(
-    Map<int, List<DownloadTask>> groupedTasks,
-  ) {
+      Map<int, List<DownloadTask>> groupedTasks) {
     if (_searchQuery.isEmpty) return groupedTasks;
 
     final query = _searchQuery.toLowerCase();
@@ -601,12 +441,10 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
 
   void _openWorkDetail(int workId, DownloadTask task) async {
     _log.captureOutput(
-      '[LocalDownloads] 打开作品详情: workId=$workId, task=${task.id}, '
-      'file=${task.fileName}, hasMetadata=${task.workMetadata != null}',
-    );
+        '[LocalDownloads] 打开作品详情: workId=$workId, task=${task.id}, '
+        'file=${task.fileName}, hasMetadata=${task.workMetadata != null}');
 
-    final loadedMetadata =
-        task.workMetadata ??
+    final loadedMetadata = task.workMetadata ??
         await DownloadService.instance.getWorkMetadata(workId);
 
     if (!mounted) return;
@@ -640,10 +478,8 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
         workId,
         metadata: metadata,
       );
-      final localCoverPath = DownloadService.instance.localCoverPathForMetadata(
-        workDir,
-        metadata,
-      );
+      final localCoverPath =
+          DownloadService.instance.localCoverPathForMetadata(workDir, metadata);
 
       if (mounted) {
         Navigator.of(context).push(
@@ -654,9 +490,8 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
               localCoverPath: localCoverPath,
               localCoverRelativePath: metadata['localCoverPath'] as String?,
               localWorkDirPath: workDir.path,
-              fileTree: rawChildren is List
-                  ? List<dynamic>.from(rawChildren)
-                  : null,
+              fileTree:
+                  rawChildren is List ? List<dynamic>.from(rawChildren) : null,
             ),
           ),
         );
@@ -686,9 +521,8 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
     if (value == null) return null;
 
     if (value is Map) {
-      return value.map(
-        (key, val) => MapEntry(key.toString(), _deepSanitize(val)),
-      );
+      return value
+          .map((key, val) => MapEntry(key.toString(), _deepSanitize(val)));
     }
 
     if (value is List) {
@@ -724,17 +558,14 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
       initialData: DownloadService.instance.tasks,
       builder: (context, snapshot) {
         final tasks = snapshot.data ?? [];
-        final completedTasks = tasks
-            .where((t) => t.status == DownloadStatus.completed)
-            .toList();
+        final completedTasks =
+            tasks.where((t) => t.status == DownloadStatus.completed).toList();
 
         // 按作品分组
         final Map<int, List<DownloadTask>> allGroupedTasks = {};
         for (final task in completedTasks) {
           allGroupedTasks.putIfAbsent(task.workId, () => []).add(task);
         }
-        _latestGroupedTasks = allGroupedTasks;
-        _publishNativeToolbar();
 
         // 应用搜索过滤
         final groupedTasks = _filterTasks(allGroupedTasks);
@@ -746,8 +577,8 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
         final currentPage = totalPages == 0 || _currentPage < 1
             ? 1
             : _currentPage > totalPages
-            ? totalPages
-            : _currentPage;
+                ? totalPages
+                : _currentPage;
         final startIndex = (currentPage - 1) * _pageSize;
         final endIndex = (startIndex + _pageSize).clamp(0, totalCount);
         final currentPageWorkIds = sortedWorkIds.sublist(startIndex, endIndex);
@@ -821,8 +652,7 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
                 },
               ),
             ),
-            if (!widget.useNativeToolbar &&
-                widget.primaryToolbarVisible == null)
+            if (widget.primaryToolbarVisible == null)
               Positioned(
                 top: toolbarTop,
                 left: FloatingToolbarLayout.horizontalPadding(context),
@@ -841,7 +671,7 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
                   ],
                 ),
               )
-            else if (!widget.useNativeToolbar)
+            else
               FloatingToolbarPositionFollower(
                 primaryToolbarVisible: widget.primaryToolbarVisible!,
                 visibleTop: toolbarTop,
@@ -888,18 +718,15 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
               ),
             ),
             FloatingToolbarIconButton(
-              icon:
-                  _selectedWorkIds.length == groupedTasks.length &&
+              icon: _selectedWorkIds.length == groupedTasks.length &&
                       groupedTasks.isNotEmpty
                   ? Icons.deselect
                   : Icons.select_all,
-              tooltip:
-                  _selectedWorkIds.length == groupedTasks.length &&
+              tooltip: _selectedWorkIds.length == groupedTasks.length &&
                       groupedTasks.isNotEmpty
                   ? S.of(context).deselectAll
                   : S.of(context).selectAll,
-              onPressed:
-                  _selectedWorkIds.length == groupedTasks.length &&
+              onPressed: _selectedWorkIds.length == groupedTasks.length &&
                       groupedTasks.isNotEmpty
                   ? _deselectAll
                   : () => _selectAll(groupedTasks),
@@ -1044,7 +871,10 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: isSelected
-            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+            ? BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              )
             : BorderSide.none,
       ),
       child: InkWell(
@@ -1120,9 +950,9 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
                               Icon(
                                 Icons.mic,
                                 size: 12,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                               const SizedBox(width: 4),
                               Expanded(
@@ -1132,9 +962,9 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -1164,9 +994,8 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
                           Icon(
                             Icons.storage,
                             size: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 4),
                           Flexible(
@@ -1174,9 +1003,9 @@ class _LocalDownloadsScreenState extends ConsumerState<LocalDownloadsScreen>
                               formatBytes(totalSize),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),

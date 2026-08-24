@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,9 +17,6 @@ import '../utils/l10n_extensions.dart';
 import '../utils/subtitle_filter.dart';
 import '../widgets/floating_feed_toolbar.dart';
 import '../utils/system_ui_style.dart';
-import '../platform/harmony_channel.dart';
-import '../platform/harmony_native_overlay.dart';
-import '../platform/runtime_platform.dart';
 
 class SearchResultScreen extends StatelessWidget {
   final String keyword;
@@ -42,11 +37,8 @@ class SearchResultScreen extends StatelessWidget {
         searchResultProvider.overrideWith((ref) {
           final apiService = ref.watch(kikoeruApiServiceProvider);
           final pageSize = ref.read(pageSizeProvider);
-          final notifier = SearchResultNotifier(
-            apiService,
-            ref,
-            initialPageSize: pageSize,
-          );
+          final notifier =
+              SearchResultNotifier(apiService, ref, initialPageSize: pageSize);
 
           ref.listen(pageSizeProvider, (previous, next) {
             if (previous != next) {
@@ -84,28 +76,17 @@ class _SearchResultContent extends ConsumerStatefulWidget {
 
 class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
   final ScrollController _scrollController = ScrollController();
-  HarmonyNativeTopActionRegistration? _nativeTopActionRegistration;
-  bool _sortDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
-    HarmonyChannel.nativeTopBarActive.addListener(_handleNativeTopChanged);
-    _nativeTopActionRegistration = HarmonyChannel.setNativeTopActionHandler(
-      HarmonyTopBarPage.searchResult,
-      _handleNativeTopAction,
-    );
     logOutput(
-      '[SearchResult] Screen initialized with keyword: ${widget.keyword}, type: ${widget.searchTypeLabel}',
-    );
+        '[SearchResult] Screen initialized with keyword: ${widget.keyword}, type: ${widget.searchTypeLabel}');
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       logOutput(
-        '[SearchResult] Starting search with params: ${widget.searchParams}',
-      );
-      ref
-          .read(searchResultProvider.notifier)
-          .initializeSearch(
+          '[SearchResult] Starting search with params: ${widget.searchParams}');
+      ref.read(searchResultProvider.notifier).initializeSearch(
             keyword: widget.keyword,
             searchParams: widget.searchParams,
           );
@@ -114,70 +95,27 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
 
   @override
   void dispose() {
-    HarmonyChannel.nativeTopBarActive.removeListener(_handleNativeTopChanged);
-    _nativeTopActionRegistration?.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _handleNativeTopChanged() {
-    if (mounted) setState(() {});
-  }
-
-  void _handleNativeTopAction(HarmonyNativeTopAction event) {
-    if (!mounted) return;
-    switch (event.action) {
-      case 'back':
-        Navigator.of(context).maybePop();
-        break;
-      case 'layout':
-        ref.read(searchResultProvider.notifier).toggleLayoutType();
-        break;
-      case 'subtitle':
-        ref.read(searchResultProvider.notifier).toggleSubtitleFilter();
-        break;
-      case 'sort':
-        unawaited(_showSortDialog(context));
-        break;
-    }
-  }
-
-  String _layoutIconId(SearchLayoutType layoutType) => switch (layoutType) {
-    SearchLayoutType.bigGrid => 'grid_3x3',
-    SearchLayoutType.smallGrid => 'view_list',
-    SearchLayoutType.list => 'view_agenda',
-  };
-
-  Future<void> _showSortDialog(BuildContext context) async {
-    if (_sortDialogOpen) return;
+  void _showSortDialog(BuildContext context) {
     final state = ref.read(searchResultProvider);
-    _sortDialogOpen = true;
-    try {
-      await showWithNativeShellSuppressed<void>(
-        context,
-        () => showDialog<void>(
-          context: context,
-          builder: (context) => CommonSortDialog(
-            currentOption: state.sortOption,
-            currentDirection: state.sortDirection,
-            availableOptions: SortOrder.values
-                .where(
-                  (option) =>
-                      option != SortOrder.nsfw && option != SortOrder.updatedAt,
-                )
-                .toList(),
-            onSort: (option, direction) {
-              ref
-                  .read(searchResultProvider.notifier)
-                  .updateSort(option, direction);
-            },
-            autoClose: true,
-          ),
-        ),
-      );
-    } finally {
-      _sortDialogOpen = false;
-    }
+    showDialog(
+      context: context,
+      builder: (context) => CommonSortDialog(
+        currentOption: state.sortOption,
+        currentDirection: state.sortDirection,
+        availableOptions: SortOrder.values
+            .where((option) =>
+                option != SortOrder.nsfw && option != SortOrder.updatedAt)
+            .toList(),
+        onSort: (option, direction) {
+          ref.read(searchResultProvider.notifier).updateSort(option, direction);
+        },
+        autoClose: true,
+      ),
+    );
   }
 
   IconData _getLayoutIcon(SearchLayoutType layoutType) {
@@ -216,40 +154,8 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
     final horizontalPadding = FloatingToolbarLayout.horizontalPadding(context);
 
     final topPadding = MediaQuery.paddingOf(context).top;
-    final systemOverlayStyle = transparentSystemBarsForBrightness(
-      Theme.of(context).brightness,
-    );
-    final requestNativeTopGlass =
-        runtimePlatform.usesNativeHarmonyGlass &&
-        ref.watch(liquidGlassTopBarProvider);
-    final useNativeTopGlass =
-        requestNativeTopGlass &&
-        HarmonyChannel.isNativeTopBarActiveFor(HarmonyTopBarPage.searchResult);
-    if (requestNativeTopGlass) {
-      final subtitleActive = SubtitleFilterMode.fromValue(
-        searchState.subtitleFilter,
-      ).isActive;
-      HarmonyChannel.stageNativeTopBarData(
-        page: HarmonyTopBarPage.searchResult,
-        leadingIcon: 'arrow_back',
-        leadingAction: 'back',
-        modeLabels: const [],
-        modeIcons: const [],
-        modeActions: const [],
-        selectedMode: 0,
-        toolIcons: [
-          _layoutIconId(searchState.layoutType),
-          subtitleActive ? 'closed_caption' : 'closed_caption_disabled',
-          'sort',
-        ],
-        toolActions: const ['layout', 'subtitle', 'sort'],
-        toolSelected: [false, subtitleActive, false],
-        toolEnabled: const [true, true, true],
-        colors: harmonyShellColorsFromColorScheme(
-          Theme.of(context).colorScheme,
-        ),
-      );
-    }
+    final systemOverlayStyle =
+        transparentSystemBarsForBrightness(Theme.of(context).brightness);
 
     return GlobalAudioPlayerWrapper(
       child: AnnotatedRegion(
@@ -259,66 +165,61 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
           body: Stack(
             children: [
               Positioned.fill(child: _buildBody(searchState)),
-              if (!useNativeTopGlass)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: ProgressiveTopBlur(height: topPadding + 72),
-                ),
-              if (!useNativeTopGlass)
-                Positioned(
-                  top: topPadding + 8,
-                  left: horizontalPadding,
-                  right: horizontalPadding,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      FloatingToolbarSurface(
-                        child: FloatingToolbarIconButton(
-                          icon: Icons.arrow_back,
-                          tooltip: S.of(context).back,
-                          onPressed: () => Navigator.of(context).maybePop(),
-                        ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: ProgressiveTopBlur(height: topPadding + 72),
+              ),
+              Positioned(
+                top: topPadding + 8,
+                left: horizontalPadding,
+                right: horizontalPadding,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    FloatingToolbarSurface(
+                      child: FloatingToolbarIconButton(
+                        icon: Icons.arrow_back,
+                        tooltip: S.of(context).back,
+                        onPressed: () => Navigator.of(context).maybePop(),
                       ),
-                      FloatingToolbarSurface(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FloatingToolbarIconButton(
-                              icon: _getLayoutIcon(searchState.layoutType),
-                              tooltip: _getLayoutTooltip(
-                                searchState.layoutType,
-                              ),
-                              onPressed: () => ref
-                                  .read(searchResultProvider.notifier)
-                                  .toggleLayoutType(),
-                            ),
-                            FloatingToolbarIconButton(
-                              icon: _getSubtitleFilterIcon(
-                                searchState.subtitleFilter,
-                              ),
-                              tooltip: SubtitleFilterMode.fromValue(
-                                searchState.subtitleFilter,
-                              ).localizedTooltip(context),
-                              isSelected: SubtitleFilterMode.fromValue(
-                                searchState.subtitleFilter,
-                              ).isActive,
-                              onPressed: () => ref
-                                  .read(searchResultProvider.notifier)
-                                  .toggleSubtitleFilter(),
-                            ),
-                            FloatingToolbarIconButton(
-                              icon: Icons.sort,
-                              tooltip: S.of(context).sort,
-                              onPressed: () => _showSortDialog(context),
-                            ),
-                          ],
-                        ),
+                    ),
+                    FloatingToolbarSurface(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FloatingToolbarIconButton(
+                            icon: _getLayoutIcon(searchState.layoutType),
+                            tooltip: _getLayoutTooltip(searchState.layoutType),
+                            onPressed: () => ref
+                                .read(searchResultProvider.notifier)
+                                .toggleLayoutType(),
+                          ),
+                          FloatingToolbarIconButton(
+                            icon: _getSubtitleFilterIcon(
+                                searchState.subtitleFilter),
+                            tooltip: SubtitleFilterMode.fromValue(
+                              searchState.subtitleFilter,
+                            ).localizedTooltip(context),
+                            isSelected: SubtitleFilterMode.fromValue(
+                              searchState.subtitleFilter,
+                            ).isActive,
+                            onPressed: () => ref
+                                .read(searchResultProvider.notifier)
+                                .toggleSubtitleFilter(),
+                          ),
+                          FloatingToolbarIconButton(
+                            icon: Icons.sort,
+                            tooltip: S.of(context).sort,
+                            onPressed: () => _showSortDialog(context),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
@@ -385,7 +286,10 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
           if (ageRating != null)
             Chip(
               avatar: const Icon(Icons.shield, size: 16),
-              label: Text(ageRating, style: const TextStyle(fontSize: 13)),
+              label: Text(
+                ageRating,
+                style: const TextStyle(fontSize: 13),
+              ),
               backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
@@ -394,7 +298,10 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
           if (salesRange != null)
             Chip(
               avatar: const Icon(Icons.trending_up, size: 16),
-              label: Text(salesRange, style: const TextStyle(fontSize: 13)),
+              label: Text(
+                salesRange,
+                style: const TextStyle(fontSize: 13),
+              ),
               backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
@@ -505,8 +412,8 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
             Text(
               searchState.error!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -581,12 +488,12 @@ class _SearchResultContentState extends ConsumerState<_SearchResultContent> {
         endMessage: S.of(context).reachedEnd,
         extraBuilder: searchState.rawWorks.length > searchState.works.length
             ? (context) => Text(
-                '${searchState.rawWorks.length - searchState.works.length} filtered',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              )
+                  '${searchState.rawWorks.length - searchState.works.length} filtered',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                )
             : null,
       ),
       sliversBefore: [

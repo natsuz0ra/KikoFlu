@@ -6,7 +6,6 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:kikoeru_flutter/l10n/app_localizations.dart';
 import 'package:kikoeru_flutter/src/widgets/virtualized_sliver_collection.dart';
 import 'package:kikoeru_flutter/src/widgets/liquid_glass_layout.dart';
-import 'package:kikoeru_flutter/src/widgets/overscroll_next_page_detector.dart';
 
 Widget _app(Widget child, {Size size = const Size(400, 800)}) {
   return MaterialApp(
@@ -43,40 +42,6 @@ Widget _list({
   );
 }
 
-Future<(Positioned, Container)> _showOverscrollPrompt(
-  WidgetTester tester, {
-  required double bottomInset,
-}) async {
-  final controller = ScrollController();
-  addTearDown(controller.dispose);
-  await tester.pumpWidget(
-    _app(
-      OverscrollNextPageDetector(
-        hasNextPage: true,
-        bottomInset: bottomInset,
-        promptText: 'pull next',
-        child: ListView(
-          controller: controller,
-          children: const [SizedBox(height: 1200)],
-        ),
-      ),
-    ),
-  );
-  await tester.pump();
-  controller.jumpTo(controller.position.maxScrollExtent);
-  await tester.pump();
-
-  final gesture = await tester.startGesture(const Offset(200, 400));
-  await gesture.moveBy(const Offset(0, -80));
-  await tester.pump();
-  final positioned = tester.widget<Positioned>(
-    find.ancestor(of: find.text('pull next'), matching: find.byType(Positioned)),
-  );
-  final prompt = positioned.child as Container;
-  await gesture.up();
-  return (positioned, prompt);
-}
-
 void main() {
   testWidgets('appends the measured liquid glass dock extent', (tester) async {
     final dockExtent = ValueNotifier<double>(128);
@@ -103,77 +68,6 @@ void main() {
       ),
       findsOneWidget,
     );
-  });
-
-  testWidgets('passes the measured dock extent to pagination prompt',
-      (tester) async {
-    final dockExtent = ValueNotifier<double>(128);
-
-    await tester.pumpWidget(
-      _app(
-        LiquidGlassDockScope(
-          notifier: dockExtent,
-          child: VirtualizedSliverCollection<int>(
-            items: List.generate(20, (index) => index),
-            itemId: (item) => item,
-            showEndIndicator: false,
-            pagination: VirtualizedPagination(
-              currentPage: 1,
-              pageSize: 20,
-              totalCount: 40,
-              hasMore: true,
-              isLoading: false,
-              scrollToTop: false,
-              nextPageOnOverscroll: true,
-              onNextPage: () async {},
-            ),
-            itemBuilder: (context, item, index) => _IdentityTile(item: item),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    final detector = tester.widget<OverscrollNextPageDetector>(
-      find.byType(OverscrollNextPageDetector),
-    );
-    expect(detector.bottomInset, dockExtent.value);
-  });
-
-  testWidgets('keeps pagination prompt close to dock only in dock mode',
-      (tester) async {
-    final withDock = await _showOverscrollPrompt(tester, bottomInset: 96);
-    expect(withDock.$1.bottom, 96);
-    expect(withDock.$2.alignment, Alignment.center);
-    expect(withDock.$2.padding, isNull);
-
-    final withoutDock = await _showOverscrollPrompt(tester, bottomInset: 0);
-    expect(withoutDock.$1.bottom, 0);
-    expect(withoutDock.$2.alignment, Alignment.center);
-    expect(withoutDock.$2.padding, isNull);
-  });
-
-  testWidgets('forwards a bounded native top inset to RefreshIndicator', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _app(
-        VirtualizedSliverCollection<int>(
-          items: const [1, 2, 3],
-          itemId: (item) => item,
-          onRefresh: () async {},
-          refreshIndicatorEdgeOffset: 96,
-          refreshIndicatorDisplacement: 136,
-          itemBuilder: (context, item, index) => _IdentityTile(item: item),
-        ),
-      ),
-    );
-
-    final indicator = tester.widget<RefreshIndicator>(
-      find.byType(RefreshIndicator),
-    );
-    expect(indicator.edgeOffset, 96);
-    expect(indicator.displacement, 136);
   });
 
   testWidgets('stable item identity preserves item state after reordering',

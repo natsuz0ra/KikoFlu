@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:real_liquid_glass/real_liquid_glass.dart';
 
 import '../providers/settings_provider.dart';
-import '../platform/runtime_platform.dart';
 
 class FloatingFeedModeAction {
   const FloatingFeedModeAction({
@@ -232,30 +231,6 @@ class _ModeDropdown extends StatelessWidget {
 class FloatingToolbarLayout {
   const FloatingToolbarLayout._();
 
-  /// Geometry shared by the floating feed rows and their scroll content.
-  ///
-  /// A row starts 8 logical pixels below the safe-area (or the previous row),
-  /// occupies 48 pixels, and leaves another 8 pixels before the next surface.
-  /// Keeping this here lets refresh indicators use the same bottom edge as the
-  /// visible toolbar instead of repeating page-specific arithmetic.
-  static const double toolbarOuterInset = 8;
-  static const double toolbarHeight = 48;
-  static const double toolbarStride = toolbarHeight + toolbarOuterInset;
-
-  /// RefreshIndicator settles this far below the native toolbar's bottom.
-  /// Non-native callers retain Flutter's default 40 logical pixels.
-  static const double nativeRefreshIndicatorDisplacement = 16;
-
-  static double toolbarTop(double safeAreaTop, {int row = 0}) {
-    assert(row >= 0);
-    return safeAreaTop + toolbarOuterInset + row * toolbarStride;
-  }
-
-  static double contentTopAfterRows(double safeAreaTop, {int rows = 1}) {
-    assert(rows > 0);
-    return toolbarTop(safeAreaTop, row: rows);
-  }
-
   static double horizontalPadding(BuildContext context) {
     return MediaQuery.of(context).orientation == Orientation.landscape
         ? 24.0
@@ -280,45 +255,15 @@ class FloatingToolbarSurface extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    // 兼容旧的导航玻璃偏好；顶栏设置优先用于鸿蒙，旧测试/用户偏好仍可启用。
-    final useLiquidGlass =
-        ref.watch(liquidGlassTopBarProvider) ||
-        ref.watch(liquidGlassNavigationProvider);
+    final useLiquidGlass = ref.watch(liquidGlassNavigationProvider);
+    final fallbackGlassTransparency =
+        ref.watch(fallbackGlassTransparencyProvider);
     final content = Material(
       type: MaterialType.transparency,
       child: Padding(padding: padding, child: child),
     );
 
-    // 鸿蒙端由 ArkUI 原生层承载沉浸材质，Flutter 这里只保留内容层，
-    // 但 Flutter 外接纹理无法被空 ArkUI 材质节点采样，因此保留一个
-    // 轻量的固定玻璃表面，避免透明化后控件失去背景。
-    if (useLiquidGlass && runtimePlatform.isOhos) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.82),
-          borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: 0.12),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: Padding(padding: padding, child: child),
-        ),
-      );
-    }
-
     if (useLiquidGlass) {
-      final fallbackGlassTransparency = ref.watch(
-        fallbackGlassTransparencyProvider,
-      );
       return ClipRRect(
         borderRadius: BorderRadius.circular(_radius),
         child: LiquidGlassContainer(
@@ -436,7 +381,10 @@ class _FloatingToolbarPositionFollowerState
             showWhenUnlinked: false,
             child: Align(
               alignment: Alignment.topLeft,
-              child: SizedBox(width: constraints.maxWidth, child: widget.child),
+              child: SizedBox(
+                width: constraints.maxWidth,
+                child: widget.child,
+              ),
             ),
           ),
           child: CompositedTransformTarget(

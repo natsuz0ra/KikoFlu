@@ -441,27 +441,6 @@ class SJa extends S {
   String get uiSettingsSubtitle => 'プレーヤー、詳細ページ、カードなど';
 
   @override
-  String get experimentalFeatures => 'Experimental Features';
-
-  @override
-  String get experimentalFeaturesDesc =>
-      'Try platform-specific features that may change or be unstable.';
-
-  @override
-  String get liquidGlassTopBar => 'Top Bar Liquid Glass';
-
-  @override
-  String get liquidGlassTopBarDesc =>
-      'Use the translucent glass effect for feed filters and top action buttons.';
-
-  @override
-  String get liquidGlassBottomBar => 'Bottom Bar Liquid Glass';
-
-  @override
-  String get liquidGlassBottomBarDesc =>
-      'Use the translucent glass effect for the bottom navigation and mini player.';
-
-  @override
   String get liquidGlassNavigation => 'リキッドグラスナビゲーション';
 
   @override

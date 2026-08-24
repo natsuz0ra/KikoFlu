@@ -7,7 +7,6 @@ import 'account_management_screen.dart';
 import 'download_path_settings_screen.dart';
 import 'theme_settings_screen.dart';
 import 'ui_settings_screen.dart';
-import 'experimental_features_screen.dart';
 import 'preferences_screen.dart';
 import 'about_screen.dart';
 import 'permissions_screen.dart';
@@ -21,7 +20,6 @@ import '../providers/floating_lyric_provider.dart';
 import '../services/cache_service.dart';
 import '../services/translation_service.dart';
 import '../utils/snackbar_util.dart';
-import '../platform/harmony_native_overlay.dart';
 import '../widgets/scrollable_appbar.dart';
 import '../widgets/download_fab.dart';
 import '../widgets/radio_option_group.dart';
@@ -36,7 +34,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  static const double _nativeDockPromptGap = 2;
   String _cacheSize = '';
   bool _isUpdatingCacheSize = false;
   ScaffoldMessengerState? _scaffoldMessenger;
@@ -74,7 +71,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context,
       snackBar,
       fallbackMessenger: _scaffoldMessenger,
-      dockGap: _nativeDockPromptGap,
     );
   }
 
@@ -388,7 +384,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _showLanguagePicker(BuildContext context, WidgetRef ref) async {
+  void _showLanguagePicker(BuildContext context, WidgetRef ref) {
     final currentLocale = ref.read(localeProvider);
     final options = <(String, Locale?)>[
       (S.of(context).languageSystem, null),
@@ -405,11 +401,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         option.$2?.languageCode == currentLocale?.languageCode &&
         option.$2?.scriptCode == currentLocale?.scriptCode);
 
-    await showWithNativeShellSuppressed<void>(
-      context,
-      () => showDialog<void>(
-        context: context,
-        builder: (context) => SimpleDialog(
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
         title: Text(S.of(context).settingsLanguage),
         children: [
           RadioOptionGroup<int>(
@@ -427,7 +421,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
         ],
-        ),
       ),
     );
   }
@@ -480,18 +473,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => const UiSettingsScreen(),
-              ),
-            );
-          },
-        ),
-        SettingsNavigationTile(
-          icon: Icons.science_outlined,
-          title: S.of(context).experimentalFeatures,
-          subtitle: S.of(context).experimentalFeaturesDesc,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const ExperimentalFeaturesScreen(),
               ),
             );
           },
@@ -701,11 +682,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (!mounted) return;
 
-    await showWithNativeShellSuppressed<void>(
-      context,
-      () => showDialog<void>(
-        context: context,
-        builder: (context) {
+    showDialog(
+      context: context,
+      builder: (context) {
         // 使用独立的状态变量控制滑动条
         int tempLimit = currentLimit;
 
@@ -1165,8 +1144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         );
-        },
-      ),
+      },
     );
   }
 }
