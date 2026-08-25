@@ -254,15 +254,25 @@ class AudioPlayerService {
     // Listen to player state changes
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
+        final completedIndex = _currentIndex;
         if (Platform.isMacOS) {
           // macOS: Use dedicated handler to prevent duplicate triggers
           if (!_completionHandled) {
             _completionHandled = true;
-            unawaited(_handleTrackCompletion());
+            unawaited(
+              _handleTrackCompletion(
+                expectedIndex: completedIndex,
+                requireCompletedState: true,
+              ),
+            );
           }
         } else {
-          // Other platforms: Use simple direct handling
-          unawaited(_handleTrackCompletion());
+          unawaited(
+            _handleTrackCompletion(
+              expectedIndex: completedIndex,
+              requireCompletedState: true,
+            ),
+          );
         }
       }
 
@@ -599,8 +609,18 @@ class AudioPlayerService {
   }
 
   // Handle track completion logic
-  Future<void> _handleTrackCompletion() async {
-    if (_sessionCompleted || _handlingTrackCompletion) return;
+  Future<void> _handleTrackCompletion({
+    int? expectedIndex,
+    bool requireCompletedState = false,
+  }) async {
+    if (_sessionCompleted ||
+        _handlingTrackCompletion ||
+        _isSwitchingTrack ||
+        (expectedIndex != null && expectedIndex != _currentIndex) ||
+        (requireCompletedState &&
+            _player.processingState != ProcessingState.completed)) {
+      return;
+    }
     _handlingTrackCompletion = true;
     try {
       if (_appLoopMode == LoopMode.one) {
@@ -613,10 +633,16 @@ class AudioPlayerService {
         unawaited(play());
       } else if (_currentIndex < _queue.length - 1) {
         // Has next track - play it
-        await _switchToIndexAndPlay(_currentIndex + 1);
+        await _switchToIndexAndPlay(
+          _currentIndex + 1,
+          resetCompletedPlaybackIntent: runtimePlatform.isOhos,
+        );
       } else if (_appLoopMode == LoopMode.all && _queue.isNotEmpty) {
         // List repeat - go back to first track
-        await _switchToIndexAndPlay(0);
+        await _switchToIndexAndPlay(
+          0,
+          resetCompletedPlaybackIntent: runtimePlatform.isOhos,
+        );
       } else {
         // A naturally completed non-looping queue must not reappear next launch.
         _sessionCompleted = true;
@@ -840,16 +866,45 @@ class AudioPlayerService {
     }
   }
 
-  Future<void> _switchToIndexAndPlay(int index) async {
+  Future<void> _switchToIndexAndPlay(
+    int index, {
+    bool resetCompletedPlaybackIntent = false,
+  }) async {
     final previousIndex = _currentIndex;
     _currentIndex = index;
     try {
       await _loadTrack(_queue[_currentIndex]);
+      if (resetCompletedPlaybackIntent) {
+        await _resetOhosCompletedPlaybackIntent(index);
+      }
       await play();
     } catch (_) {
       _currentIndex = previousIndex;
       rethrow;
     }
+  }
+
+  Future<void> _resetOhosCompletedPlaybackIntent(int targetIndex) async {
+    if (!runtimePlatform.isOhos || targetIndex != _currentIndex) return;
+
+    // just_audio intentionally keeps `playing == true` after completion. The
+    // OHOS AVPlayer implementation normally carries that intent into the next
+    // source, but it can intermittently leave the freshly loaded source ready
+    // at position zero without starting it. Flip the Dart-side intent to false
+    // after loading so play() must send an explicit native play request.
+    try {
+      await _player.pause().timeout(const Duration(seconds: 1));
+    } catch (error) {
+      // AVPlayer may reject pause while its completed -> prepared transition is
+      // settling. just_audio has already updated its local playing flag, so the
+      // explicit play request below is still the correct recovery path.
+      _log.captureOutput(
+        '[Audio] OHOS completed-state pause was rejected; continuing recovery: '
+        '$error',
+      );
+    }
+
+    await Future<void>.delayed(Duration.zero);
   }
 
   Future<void> removeTrackAt(int index) async {
