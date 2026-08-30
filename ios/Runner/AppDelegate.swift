@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import AVKit
 import CoreImage
+import CFNetwork
 import AudioToolbox
 import CoreHaptics
 
@@ -33,9 +34,66 @@ import CoreHaptics
         result(FlutterMethodNotImplemented)
       }
     }
+
+    let systemProxyChannel = FlutterMethodChannel(
+      name: "com.meteor.kikoeruflutter/system_proxy",
+      binaryMessenger: controller.binaryMessenger
+    )
+    systemProxyChannel.setMethodCallHandler { [weak self] call, result in
+      guard let self else {
+        result(FlutterError(code: "unavailable", message: nil, details: nil))
+        return
+      }
+      switch call.method {
+      case "getSystemProxy":
+        result(self.systemProxy())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
     
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  private func systemProxy() -> String? {
+    guard let settings = CFNetworkCopySystemProxySettings()?.takeUnretainedValue()
+      as NSDictionary? else {
+      return nil
+    }
+
+    var entries: [String] = []
+    // iOS exposes the HTTP proxy keys here; Dart uses this entry as the
+    // HTTPS fallback as well. The HTTPS-specific keys are macOS-only.
+    appendProxy(
+      to: &entries,
+      settings: settings,
+      hostKey: kCFNetworkProxiesHTTPProxy,
+      portKey: kCFNetworkProxiesHTTPPort,
+      enabledKey: kCFNetworkProxiesHTTPEnable,
+      scheme: "http"
+    )
+    return entries.isEmpty ? nil : entries.joined(separator: ";")
+  }
+
+  private func appendProxy(
+    to entries: inout [String],
+    settings: NSDictionary,
+    hostKey: CFString,
+    portKey: CFString,
+    enabledKey: CFString,
+    scheme: String
+  ) {
+    if let enabled = settings[enabledKey] as? NSNumber, !enabled.boolValue {
+      return
+    }
+    guard let host = settings[hostKey] as? String,
+          let port = (settings[portKey] as? NSNumber)?.intValue,
+          !host.isEmpty,
+          port > 0 else {
+      return
+    }
+    entries.append("\(scheme)=\(host):\(port)")
   }
 }
 
@@ -1001,6 +1059,28 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
     private var compositionFrameCount = 0
     private var didLogFirstCompositionFrame = false
     private var sampleBufferEnqueueCount = 0
+    private let sampleBufferHeartbeatInterval: TimeInterval = 0.25
+    private var sampleBufferHeartbeatTimer: Timer?
+    private var sampleBufferHeartbeatEnqueueCount = 0
+    private var sampleBufferLastEnqueueUptime: TimeInterval?
+    private var sampleBufferMaximumEnqueueGapMilliseconds = 0
+    private var sampleBufferPixelBuffer: CVPixelBuffer?
+    private var sampleBufferFormatDescription: CMVideoFormatDescription?
+    private var sampleBufferFrameGeneration = -1
+    private var sampleBufferCreationFailureCount = 0
+    private var didLogSampleBufferCreationFailure = false
+    private var sampleBufferLastCreationFailureStage: String?
+    private var sampleBufferLastCreationFailureStatus: Int32?
+    private var didLogSampleBufferFlushAfterFailure = false
+    private var didAttemptSampleBufferFailureReset = false
+    private var didLogSampleBufferResetFailure = false
+    private var sampleBufferResetInProgress = false
+    private var didLogSampleBufferFrameContent = false
+    private var sampleBufferLastPresentationTime: CMTime?
+    private var sampleBufferNonMonotonicTimestampCount = 0
+    private var sampleBufferFrameContentDetails: [String: Any]?
+    private var pictureInPictureStartUptime: TimeInterval?
+    private var stopRequestedByApp = false
     private var setupFailure: String?
     private var pendingShowResult: FlutterResult?
     private var startGeneration = 0
@@ -1027,6 +1107,7 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     deinit {
+        sampleBufferHeartbeatTimer?.invalidate()
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -1051,6 +1132,8 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         renderInputNativeScale = nativeScale
         renderScale = scale
         renderSize = CGSize(width: outputWidth, height: outputHeight)
+
+        updateSampleBufferDisplayLayerGeometry()
 
         if let videoComposition {
             videoComposition.renderSize = renderSize
@@ -1079,12 +1162,12 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
     @available(iOS 15.0, *)
     private func setupSampleBufferPictureInPicture(in view: UIView) {
         let displayLayer = AVSampleBufferDisplayLayer()
-        displayLayer.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
         displayLayer.opacity = 1
         displayLayer.backgroundColor = UIColor.black.cgColor
         displayLayer.videoGravity = .resizeAspect
-        view.layer.insertSublayer(displayLayer, at: 0)
         sampleBufferDisplayLayer = displayLayer
+        updateSampleBufferDisplayLayerGeometry()
+        attachSampleBufferDisplayLayer(below: view)
 
         let playbackDelegate = FloatingLyricSampleBufferPlaybackDelegate(manager: self)
         sampleBufferPlaybackDelegate = playbackDelegate
@@ -1108,6 +1191,32 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         if pipController == nil {
             setupFailure = "sample_buffer_pip_controller_creation_failed"
         }
+    }
+
+    private func updateSampleBufferDisplayLayerGeometry() {
+        guard let displayLayer = sampleBufferDisplayLayer else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        displayLayer.bounds = CGRect(origin: .zero, size: logicalFrameSize)
+        displayLayer.position = CGPoint(
+            x: logicalFrameSize.width / 2,
+            y: logicalFrameSize.height / 2
+        )
+        displayLayer.contentsScale = renderScale
+        CATransaction.commit()
+    }
+
+    private func attachSampleBufferDisplayLayer(below view: UIView) {
+        guard let displayLayer = sampleBufferDisplayLayer,
+              let parentLayer = view.layer.superlayer else {
+            return
+        }
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        displayLayer.removeFromSuperlayer()
+        parentLayer.insertSublayer(displayLayer, below: view.layer)
+        CATransaction.commit()
     }
 
     private func setupLegacyPictureInPicture(in view: UIView) {
@@ -1196,15 +1305,30 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
 
     @available(iOS 15.0, *)
     private func observeSampleBufferState(_ displayLayer: AVSampleBufferDisplayLayer) {
-        sampleBufferStatusObservation = displayLayer.observe(\.status, options: [.new]) {
-            [weak self] layer, _ in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.emitDiagnostic(
-                    "sample_buffer_status_changed",
-                    level: layer.status == .failed ? "error" : "info",
-                    details: self.sampleBufferDetails(layer)
-                )
+        if #available(iOS 17.0, *) {
+            let renderer = displayLayer.sampleBufferRenderer
+            sampleBufferStatusObservation = renderer.observe(\.status, options: [.new]) {
+                [weak self, weak displayLayer] renderer, _ in
+                DispatchQueue.main.async {
+                    guard let self, let displayLayer else { return }
+                    self.emitDiagnostic(
+                        "sample_buffer_status_changed",
+                        level: renderer.status == .failed ? "error" : "info",
+                        details: self.sampleBufferDetails(displayLayer)
+                    )
+                }
+            }
+        } else {
+            sampleBufferStatusObservation = displayLayer.observe(\.status, options: [.new]) {
+                [weak self, weak displayLayer] layer, _ in
+                DispatchQueue.main.async {
+                    guard let self, let displayLayer else { return }
+                    self.emitDiagnostic(
+                        "sample_buffer_status_changed",
+                        level: layer.status == .failed ? "error" : "info",
+                        details: self.sampleBufferDetails(displayLayer)
+                    )
+                }
             }
         }
         if #available(iOS 17.4, *) {
@@ -1363,6 +1487,10 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
             result(false)
             return
         }
+        if !pipController.isPictureInPictureActive {
+            stopRequestedByApp = false
+            pictureInPictureStartUptime = nil
+        }
         emitDiagnostic("render_metrics_selected", details: renderMetricsDetails())
         emitDiagnostic("show_requested", details: diagnosticSnapshot())
         if pipController.isPictureInPictureActive {
@@ -1371,12 +1499,16 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
             return
         }
 
+        stopSampleBufferHeartbeat()
         completePendingShow(false)
         pendingShowResult = result
         startGeneration += 1
         let generation = startGeneration
         resetCompositionDiagnostics()
         if sampleBufferDisplayLayer != nil {
+            if let hostView {
+                attachSampleBufferDisplayLayer(below: hostView)
+            }
             enqueueCurrentSampleBuffer(reason: "show")
             emitDiagnostic("sample_buffer_show_requested", details: diagnosticSnapshot())
         } else {
@@ -1392,6 +1524,7 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
                 level: "error",
                 details: self.diagnosticSnapshot()
             )
+            self.stopSampleBufferHeartbeat()
             self.player?.pause()
             self.completePendingShow(false)
         }
@@ -1417,6 +1550,8 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     private func hide() {
+        stopRequestedByApp = true
+        stopSampleBufferHeartbeat()
         emitDiagnostic("hide_requested", details: diagnosticSnapshot())
         startGeneration += 1
         completePendingShow(false)
@@ -1576,6 +1711,17 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
             "playerLayerReady": playerLayer?.isReadyForDisplay ?? false,
             "compositionFrameCount": frameCount,
             "sampleBufferEnqueueCount": sampleBufferEnqueueCount,
+            "sampleBufferHeartbeatIntervalMilliseconds": Int(
+                sampleBufferHeartbeatInterval * 1000
+            ),
+            "sampleBufferHeartbeatRunning": sampleBufferHeartbeatTimer != nil,
+            "sampleBufferHeartbeatEnqueueCount": sampleBufferHeartbeatEnqueueCount,
+            "sampleBufferMaximumEnqueueGapMilliseconds":
+                sampleBufferMaximumEnqueueGapMilliseconds,
+            "sampleBufferCreationFailureCount": sampleBufferCreationFailureCount,
+            "sampleBufferNonMonotonicTimestampCount":
+                sampleBufferNonMonotonicTimestampCount,
+            "stopRequestedByApp": stopRequestedByApp,
             "renderGeneration": renderGeneration,
             "renderWidth": Int(renderSize.width),
             "renderHeight": Int(renderSize.height),
@@ -1584,8 +1730,40 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
             "windowLogicalWidth": Double(renderInputLogicalWidth),
             "screenNativeScale": Double(renderInputNativeScale),
             "textLength": currentText.count,
+            "applicationState": applicationStateDescription(
+                UIApplication.shared.applicationState
+            ),
+            "lowPowerModeEnabled": ProcessInfo.processInfo.isLowPowerModeEnabled,
         ]
+        if let sampleBufferLastCreationFailureStage {
+            details["sampleBufferLastCreationFailureStage"] =
+                sampleBufferLastCreationFailureStage
+        }
+        if let sampleBufferLastCreationFailureStatus {
+            details["sampleBufferLastCreationFailureStatus"] =
+                Int(sampleBufferLastCreationFailureStatus)
+        }
+        if let lastEnqueueUptime = sampleBufferLastEnqueueUptime {
+            details["sampleBufferMillisecondsSinceLastEnqueue"] = Int(
+                max(0, ProcessInfo.processInfo.systemUptime - lastEnqueueUptime) * 1000
+            )
+        }
+        if let pictureInPictureStartUptime {
+            details["pipActiveDurationMilliseconds"] = Int(
+                max(0, ProcessInfo.processInfo.systemUptime - pictureInPictureStartUptime)
+                    * 1000
+            )
+        }
+        let audioSession = AVAudioSession.sharedInstance()
+        details["audioSessionCategory"] = audioSession.category.rawValue
+        details["audioSessionMode"] = audioSession.mode.rawValue
+        details["audioSessionOtherAudioPlaying"] = audioSession.isOtherAudioPlaying
         if let sampleBufferDisplayLayer {
+            if #available(iOS 17.0, *) {
+                details["sampleBufferQueueApi"] = "AVSampleBufferVideoRenderer"
+            } else {
+                details["sampleBufferQueueApi"] = "AVSampleBufferDisplayLayer"
+            }
             sampleBufferDetails(sampleBufferDisplayLayer).forEach {
                 details[$0.key] = $0.value
             }
@@ -1603,25 +1781,81 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         return details
     }
 
+    private func applicationStateDescription(_ state: UIApplication.State) -> String {
+        switch state {
+        case .active:
+            return "active"
+        case .inactive:
+            return "inactive"
+        case .background:
+            return "background"
+        @unknown default:
+            return "unrecognized"
+        }
+    }
+
     private func sampleBufferDetails(
         _ displayLayer: AVSampleBufferDisplayLayer
     ) -> [String: Any] {
         var details: [String: Any] = [
-            "sampleBufferStatus": sampleBufferStatusDescription(displayLayer.status),
+            "sampleBufferStatus": sampleBufferStatusDescription(
+                sampleBufferStatus(for: displayLayer)
+            ),
             "sampleBufferLayerWidth": Double(displayLayer.bounds.width),
             "sampleBufferLayerHeight": Double(displayLayer.bounds.height),
+            "sampleBufferLayerAttached": displayLayer.superlayer != nil,
+            "sampleBufferLayerMatchesLogicalFrameSize":
+                displayLayer.bounds.size == logicalFrameSize,
         ]
         if #available(iOS 17.4, *) {
             details["sampleBufferReadyForDisplay"] = displayLayer.isReadyForDisplay
         } else {
             details["sampleBufferReadyForDisplay"] = "unavailable_before_iOS_17_4"
         }
-        if let error = displayLayer.error as NSError? {
+        if let error = sampleBufferError(for: displayLayer) {
             details["sampleBufferErrorDomain"] = error.domain
             details["sampleBufferErrorCode"] = error.code
             details["sampleBufferError"] = error.localizedDescription
         }
+        details["sampleBufferRequiresFlushToResumeDecoding"] =
+            sampleBufferRequiresFlushToResumeDecoding(for: displayLayer)
         return details
+    }
+
+    private func sampleBufferStatus(
+        for displayLayer: AVSampleBufferDisplayLayer
+    ) -> AVQueuedSampleBufferRenderingStatus {
+        if #available(iOS 17.0, *) {
+            return displayLayer.sampleBufferRenderer.status
+        }
+        return displayLayer.status
+    }
+
+    private func sampleBufferError(
+        for displayLayer: AVSampleBufferDisplayLayer
+    ) -> NSError? {
+        if #available(iOS 17.0, *) {
+            if let error = displayLayer.sampleBufferRenderer.error {
+                return error as NSError
+            }
+            return nil
+        }
+        if let error = displayLayer.error {
+            return error as NSError
+        }
+        return nil
+    }
+
+    private func sampleBufferRequiresFlushToResumeDecoding(
+        for displayLayer: AVSampleBufferDisplayLayer
+    ) -> Bool {
+        if #available(iOS 17.0, *) {
+            return displayLayer.sampleBufferRenderer.requiresFlushToResumeDecoding
+        }
+        if #available(iOS 14.0, *) {
+            return displayLayer.requiresFlushToResumeDecoding
+        }
+        return false
     }
 
     private func sampleBufferStatusDescription(
@@ -1719,6 +1953,21 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         didLogFirstCompositionFrame = false
         renderedFrameLock.unlock()
         sampleBufferEnqueueCount = 0
+        sampleBufferHeartbeatEnqueueCount = 0
+        sampleBufferLastEnqueueUptime = nil
+        sampleBufferMaximumEnqueueGapMilliseconds = 0
+        sampleBufferCreationFailureCount = 0
+        didLogSampleBufferCreationFailure = false
+        sampleBufferLastCreationFailureStage = nil
+        sampleBufferLastCreationFailureStatus = nil
+        didLogSampleBufferFlushAfterFailure = false
+        didAttemptSampleBufferFailureReset = false
+        didLogSampleBufferResetFailure = false
+        sampleBufferResetInProgress = false
+        didLogSampleBufferFrameContent = false
+        sampleBufferFrameContentDetails = nil
+        sampleBufferLastPresentationTime = nil
+        sampleBufferNonMonotonicTimestampCount = 0
     }
 
     private func schedulePictureInPictureHealthCheck(after delay: TimeInterval) {
@@ -1729,10 +1978,16 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
             let snapshot = self.diagnosticSnapshot()
             let issue: String
             if let displayLayer = self.sampleBufferDisplayLayer {
-                if displayLayer.status == .failed {
+                if self.sampleBufferStatus(for: displayLayer) == .failed {
                     issue = "sample_buffer_failed"
                 } else if self.sampleBufferEnqueueCount == 0 {
                     issue = "sample_buffer_no_enqueued_frame"
+                } else if self.sampleBufferCreationFailureCount > 0 {
+                    issue = "sample_buffer_creation_failed"
+                } else if let lastEnqueueUptime = self.sampleBufferLastEnqueueUptime,
+                          ProcessInfo.processInfo.systemUptime - lastEnqueueUptime
+                              > self.sampleBufferHeartbeatInterval * 3 {
+                    issue = "sample_buffer_cadence_stalled"
                 } else if #available(iOS 17.4, *),
                           !displayLayer.isReadyForDisplay {
                     issue = "sample_buffer_no_display_frame"
@@ -1877,10 +2132,11 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         return renderedCIImage
     }
 
-    private func currentRenderedFrame() -> CGImage? {
+    private func currentRenderedFrame() -> (image: CGImage, generation: Int)? {
         renderedFrameLock.lock()
         defer { renderedFrameLock.unlock() }
-        return renderedFrame
+        guard let renderedFrame else { return nil }
+        return (renderedFrame, renderedFrameGeneration)
     }
 
     fileprivate func refreshSampleBufferFrame() {
@@ -1889,94 +2145,292 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         }
     }
 
-    private func enqueueCurrentSampleBuffer(reason: String) {
+    private func startSampleBufferHeartbeat() {
+        guard sampleBufferDisplayLayer != nil,
+              sampleBufferHeartbeatTimer == nil else { return }
+        enqueueCurrentSampleBuffer(reason: "heartbeat_start")
+        let timer = Timer(
+            timeInterval: sampleBufferHeartbeatInterval,
+            repeats: true
+        ) { [weak self] _ in
+            guard let self,
+                  self.pipController?.isPictureInPictureActive == true
+                    || self.pendingShowResult != nil else { return }
+            self.enqueueCurrentSampleBuffer(reason: "heartbeat")
+        }
+        timer.tolerance = sampleBufferHeartbeatInterval * 0.2
+        RunLoop.main.add(timer, forMode: .common)
+        sampleBufferHeartbeatTimer = timer
+    }
+
+    private func stopSampleBufferHeartbeat() {
+        sampleBufferHeartbeatTimer?.invalidate()
+        sampleBufferHeartbeatTimer = nil
+    }
+
+    private func enqueueCurrentSampleBuffer(
+        reason: String,
+        afterFailureReset: Bool = false
+    ) {
         guard #available(iOS 15.0, *),
               let displayLayer = sampleBufferDisplayLayer,
-              let image = currentRenderedFrame() else { return }
+              let frame = currentRenderedFrame() else { return }
+        guard !sampleBufferResetInProgress || afterFailureReset else { return }
 
-        if displayLayer.status == .failed {
-            emitDiagnostic(
-                "sample_buffer_flush_after_failure",
-                level: "warning",
-                details: sampleBufferDetails(displayLayer)
-            )
-            displayLayer.flush()
+        if sampleBufferStatus(for: displayLayer) != .failed {
+            didAttemptSampleBufferFailureReset = false
         }
-
-        guard let sampleBuffer = makeImmediateSampleBuffer(from: image) else {
-            emitDiagnostic(
-                "sample_buffer_creation_failed",
-                level: "error",
-                details: [
-                    "reason": reason,
-                    "imageWidth": image.width,
-                    "imageHeight": image.height,
-                ]
-            )
+        if sampleBufferStatus(for: displayLayer) == .failed, !afterFailureReset {
+            guard !didAttemptSampleBufferFailureReset else { return }
+            didAttemptSampleBufferFailureReset = true
+            if !didLogSampleBufferFlushAfterFailure {
+                didLogSampleBufferFlushAfterFailure = true
+                emitDiagnostic(
+                    "sample_buffer_flush_after_failure",
+                    level: "warning",
+                    details: sampleBufferDetails(displayLayer)
+                )
+            }
+            resetSampleBufferRendererAfterFailure(displayLayer) { [weak self] in
+                self?.enqueueCurrentSampleBuffer(
+                    reason: reason,
+                    afterFailureReset: true
+                )
+            }
+            return
+        }
+        if sampleBufferStatus(for: displayLayer) == .failed {
+            if !didLogSampleBufferResetFailure {
+                didLogSampleBufferResetFailure = true
+                emitDiagnostic(
+                    "sample_buffer_reset_failed",
+                    level: "error",
+                    details: sampleBufferDetails(displayLayer)
+                )
+            }
             return
         }
 
-        displayLayer.enqueue(sampleBuffer)
+        guard let sampleBuffer = makeImmediateSampleBuffer(
+            from: frame.image,
+            generation: frame.generation
+        ) else {
+            sampleBufferCreationFailureCount += 1
+            if !didLogSampleBufferCreationFailure {
+                didLogSampleBufferCreationFailure = true
+                var details: [String: Any] = [
+                    "reason": reason,
+                    "imageWidth": frame.image.width,
+                    "imageHeight": frame.image.height,
+                    "failureStage": sampleBufferLastCreationFailureStage ?? "unknown",
+                ]
+                if let sampleBufferLastCreationFailureStatus {
+                    details["failureStatus"] = Int(sampleBufferLastCreationFailureStatus)
+                }
+                emitDiagnostic(
+                    "sample_buffer_creation_failed",
+                    level: "error",
+                    details: details
+                )
+            }
+            return
+        }
+
+        if #available(iOS 17.0, *) {
+            displayLayer.sampleBufferRenderer.enqueue(sampleBuffer)
+        } else {
+            displayLayer.enqueue(sampleBuffer)
+        }
+        let now = ProcessInfo.processInfo.systemUptime
+        if let lastEnqueueUptime = sampleBufferLastEnqueueUptime {
+            sampleBufferMaximumEnqueueGapMilliseconds = max(
+                sampleBufferMaximumEnqueueGapMilliseconds,
+                Int(max(0, now - lastEnqueueUptime) * 1000)
+            )
+        }
+        sampleBufferLastEnqueueUptime = now
         sampleBufferEnqueueCount += 1
+        if reason == "heartbeat" {
+            sampleBufferHeartbeatEnqueueCount += 1
+        }
         if sampleBufferEnqueueCount == 1 {
             var details = sampleBufferDetails(displayLayer)
             details["reason"] = reason
-            details["imageWidth"] = image.width
-            details["imageHeight"] = image.height
+            details["imageWidth"] = frame.image.width
+            details["imageHeight"] = frame.image.height
+            if let sampleBufferFrameContentDetails {
+                details["frameContent"] = sampleBufferFrameContentDetails
+            }
             emitDiagnostic("sample_buffer_frame_enqueued", details: details)
         }
     }
 
     @available(iOS 15.0, *)
-    private func makeImmediateSampleBuffer(from image: CGImage) -> CMSampleBuffer? {
-        var pixelBuffer: CVPixelBuffer?
-        let attributes: [CFString: Any] = [
-            kCVPixelBufferCGImageCompatibilityKey: true,
-            kCVPixelBufferCGBitmapContextCompatibilityKey: true,
-            kCVPixelBufferIOSurfacePropertiesKey: [:],
-        ]
-        let status = CVPixelBufferCreate(
-            kCFAllocatorDefault,
-            image.width,
-            image.height,
-            kCVPixelFormatType_32BGRA,
-            attributes as CFDictionary,
-            &pixelBuffer
-        )
-        guard status == kCVReturnSuccess, let pixelBuffer else { return nil }
+    private func resetSampleBufferRendererAfterFailure(
+        _ displayLayer: AVSampleBufferDisplayLayer,
+        completion: @escaping () -> Void
+    ) {
+        sampleBufferLastPresentationTime = nil
+        sampleBufferResetInProgress = true
+        if #available(iOS 17.0, *) {
+            displayLayer.sampleBufferRenderer.flush(
+                removingDisplayedImage: true,
+                completionHandler: {
+                    DispatchQueue.main.async {
+                        self.sampleBufferResetInProgress = false
+                        completion()
+                    }
+                }
+            )
+        } else {
+            displayLayer.flushAndRemoveImage()
+            if displayLayer.status == .failed {
+                displayLayer.flush()
+            }
+            sampleBufferResetInProgress = false
+            completion()
+        }
+    }
 
-        ciContext.render(
-            CIImage(cgImage: image),
-            to: pixelBuffer,
-            bounds: CGRect(x: 0, y: 0, width: image.width, height: image.height),
-            colorSpace: CGColorSpaceCreateDeviceRGB()
-        )
+    @available(iOS 15.0, *)
+    private func makeImmediateSampleBuffer(
+        from image: CGImage,
+        generation: Int
+    ) -> CMSampleBuffer? {
+        let pixelBuffer: CVPixelBuffer
+        let formatDescription: CMVideoFormatDescription
+        if sampleBufferFrameGeneration == generation,
+           let cachedPixelBuffer = sampleBufferPixelBuffer,
+           let cachedFormatDescription = sampleBufferFormatDescription {
+            pixelBuffer = cachedPixelBuffer
+            formatDescription = cachedFormatDescription
+        } else {
+            var newPixelBuffer: CVPixelBuffer?
+            let attributes: [CFString: Any] = [
+                kCVPixelBufferCGImageCompatibilityKey: true,
+                kCVPixelBufferCGBitmapContextCompatibilityKey: true,
+                kCVPixelBufferIOSurfacePropertiesKey: [:],
+            ]
+            let status = CVPixelBufferCreate(
+                kCFAllocatorDefault,
+                image.width,
+                image.height,
+                kCVPixelFormatType_32BGRA,
+                attributes as CFDictionary,
+                &newPixelBuffer
+            )
+            guard status == kCVReturnSuccess else {
+                recordSampleBufferCreationFailure(
+                    stage: "CVPixelBufferCreate",
+                    status: status
+                )
+                return nil
+            }
+            guard let newPixelBuffer else {
+                recordSampleBufferCreationFailure(stage: "pixel_buffer_missing")
+                return nil
+            }
 
-        var formatDescription: CMVideoFormatDescription?
-        guard CMVideoFormatDescriptionCreateForImageBuffer(
-            allocator: kCFAllocatorDefault,
-            imageBuffer: pixelBuffer,
-            formatDescriptionOut: &formatDescription
-        ) == noErr, let formatDescription else { return nil }
+            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)
+                ?? CGColorSpaceCreateDeviceRGB()
+            CVBufferSetAttachment(
+                newPixelBuffer,
+                kCVImageBufferCGColorSpaceKey,
+                colorSpace,
+                .shouldPropagate
+            )
+            CVBufferSetAttachment(
+                newPixelBuffer,
+                kCVImageBufferAlphaChannelIsOpaque,
+                kCFBooleanTrue,
+                .shouldPropagate
+            )
+            ciContext.render(
+                CIImage(cgImage: image),
+                to: newPixelBuffer,
+                bounds: CGRect(x: 0, y: 0, width: image.width, height: image.height),
+                colorSpace: colorSpace
+            )
 
+            var newFormatDescription: CMVideoFormatDescription?
+            let formatStatus = CMVideoFormatDescriptionCreateForImageBuffer(
+                allocator: kCFAllocatorDefault,
+                imageBuffer: newPixelBuffer,
+                formatDescriptionOut: &newFormatDescription
+            )
+            guard formatStatus == noErr else {
+                recordSampleBufferCreationFailure(
+                    stage: "CMVideoFormatDescriptionCreateForImageBuffer",
+                    status: formatStatus
+                )
+                return nil
+            }
+            guard let newFormatDescription else {
+                recordSampleBufferCreationFailure(
+                    stage: "format_description_missing"
+                )
+                return nil
+            }
+            sampleBufferPixelBuffer = newPixelBuffer
+            sampleBufferFormatDescription = newFormatDescription
+            sampleBufferFrameGeneration = generation
+            pixelBuffer = newPixelBuffer
+            formatDescription = newFormatDescription
+        }
+
+        emitSampleBufferFrameContentDiagnosticIfNeeded(pixelBuffer)
+
+        let hostTime = CMClockGetTime(CMClockGetHostTimeClock())
+        let presentationTime: CMTime
+        if let lastPresentationTime = sampleBufferLastPresentationTime,
+           CMTimeCompare(hostTime, lastPresentationTime) <= 0 {
+            presentationTime = CMTimeAdd(
+                lastPresentationTime,
+                CMTime(value: 1, timescale: 600)
+            )
+            sampleBufferNonMonotonicTimestampCount += 1
+        } else {
+            presentationTime = hostTime
+        }
+        sampleBufferLastPresentationTime = presentationTime
         var timing = CMSampleTimingInfo(
-            duration: CMTime(value: 1, timescale: outputFrameRate),
-            presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+            duration: CMTime(
+                seconds: sampleBufferHeartbeatInterval,
+                preferredTimescale: 600
+            ),
+            presentationTimeStamp: presentationTime,
             decodeTimeStamp: .invalid
         )
         var sampleBuffer: CMSampleBuffer?
-        guard CMSampleBufferCreateReadyWithImageBuffer(
+        let sampleBufferStatus = CMSampleBufferCreateForImageBuffer(
             allocator: kCFAllocatorDefault,
             imageBuffer: pixelBuffer,
+            dataReady: true,
+            makeDataReadyCallback: nil,
+            refcon: nil,
             formatDescription: formatDescription,
             sampleTiming: &timing,
             sampleBufferOut: &sampleBuffer
-        ) == noErr, let sampleBuffer else { return nil }
+        )
+        guard sampleBufferStatus == noErr else {
+            recordSampleBufferCreationFailure(
+                stage: "CMSampleBufferCreateForImageBuffer",
+                status: sampleBufferStatus
+            )
+            return nil
+        }
+        guard let sampleBuffer else {
+            recordSampleBufferCreationFailure(stage: "sample_buffer_missing")
+            return nil
+        }
 
         guard let attachments = CMSampleBufferGetSampleAttachmentsArray(
             sampleBuffer,
             createIfNecessary: true
-        ), CFArrayGetCount(attachments) > 0 else { return nil }
+        ), CFArrayGetCount(attachments) > 0 else {
+            recordSampleBufferCreationFailure(stage: "sample_attachments_missing")
+            return nil
+        }
         let attachment = unsafeBitCast(
             CFArrayGetValueAtIndex(attachments, 0),
             to: CFMutableDictionary.self
@@ -1989,11 +2443,97 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         return sampleBuffer
     }
 
+    private func recordSampleBufferCreationFailure(
+        stage: String,
+        status: OSStatus? = nil
+    ) {
+        sampleBufferLastCreationFailureStage = stage
+        sampleBufferLastCreationFailureStatus = status
+    }
+
+    private func emitSampleBufferFrameContentDiagnosticIfNeeded(
+        _ pixelBuffer: CVPixelBuffer
+    ) {
+        guard !didLogSampleBufferFrameContent else { return }
+        didLogSampleBufferFrameContent = true
+
+        let lockStatus = CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        guard lockStatus == kCVReturnSuccess else {
+            emitDiagnostic(
+                "sample_buffer_frame_content_unavailable",
+                level: "warning",
+                details: ["pixelBufferLockStatus": lockStatus]
+            )
+            return
+        }
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
+
+        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+            emitDiagnostic(
+                "sample_buffer_frame_content_unavailable",
+                level: "warning",
+                details: ["reason": "missing_base_address"]
+            )
+            return
+        }
+
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        let bytes = baseAddress.assumingMemoryBound(to: UInt8.self)
+        var sampledPixelCount = 0
+        var nonBlackPixelCount = 0
+        var maximumRGB = 0
+        var minimumAlpha = 255
+
+        for yStep in 1...4 {
+            let y = min(height - 1, height * yStep / 5)
+            for xStep in 1...8 {
+                let x = min(width - 1, width * xStep / 9)
+                let offset = y * bytesPerRow + x * 4
+                let blue = Int(bytes[offset])
+                let green = Int(bytes[offset + 1])
+                let red = Int(bytes[offset + 2])
+                let alpha = Int(bytes[offset + 3])
+                let brightestComponent = max(red, green, blue)
+                sampledPixelCount += 1
+                maximumRGB = max(maximumRGB, brightestComponent)
+                minimumAlpha = min(minimumAlpha, alpha)
+                if brightestComponent > 8 {
+                    nonBlackPixelCount += 1
+                }
+            }
+        }
+
+        let details: [String: Any] = [
+            "pixelFormat": CVPixelBufferGetPixelFormatType(pixelBuffer),
+            "pixelWidth": width,
+            "pixelHeight": height,
+            "sampledPixelCount": sampledPixelCount,
+            "nonBlackPixelCount": nonBlackPixelCount,
+            "maximumRGB": maximumRGB,
+            "minimumAlpha": minimumAlpha,
+            "hasColorSpace": CVBufferGetAttachment(
+                pixelBuffer,
+                kCVImageBufferCGColorSpaceKey,
+                nil
+            ) != nil,
+            "alphaMarkedOpaque": CVBufferGetAttachment(
+                pixelBuffer,
+                kCVImageBufferAlphaChannelIsOpaque,
+                nil
+            ) != nil,
+        ]
+        sampleBufferFrameContentDetails = details
+        emitDiagnostic("sample_buffer_frame_content", details: details)
+    }
+
     // MARK: - AVPictureInPictureControllerDelegate
 
     func pictureInPictureControllerWillStartPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
+        startSampleBufferHeartbeat()
         emitDiagnostic("pip_will_start", details: diagnosticSnapshot())
         refreshSampleBufferFrame()
     }
@@ -2001,18 +2541,23 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
     func pictureInPictureControllerDidStartPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
+        pictureInPictureStartUptime = ProcessInfo.processInfo.systemUptime
+        startSampleBufferHeartbeat()
         emitDiagnostic("pip_did_start", details: diagnosticSnapshot())
         refreshSampleBufferFrame()
         completePendingShow(true)
         startMonitorsIfNeeded()
         schedulePictureInPictureHealthCheck(after: 0.5)
         schedulePictureInPictureHealthCheck(after: 2)
+        schedulePictureInPictureHealthCheck(after: 10)
     }
 
     func pictureInPictureControllerDidStopPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
         emitDiagnostic("pip_did_stop", details: diagnosticSnapshot())
+        stopSampleBufferHeartbeat()
+        pictureInPictureStartUptime = nil
         startGeneration += 1
         completePendingShow(false)
         stopMonitors()
@@ -2027,6 +2572,8 @@ class FloatingLyricManager: NSObject, AVPictureInPictureControllerDelegate {
         var details = diagnosticSnapshot()
         errorDetails(error).forEach { details[$0.key] = $0.value }
         emitDiagnostic("pip_failed_to_start", level: "error", details: details)
+        stopSampleBufferHeartbeat()
+        pictureInPictureStartUptime = nil
         startGeneration += 1
         completePendingShow(false)
         stopMonitors()

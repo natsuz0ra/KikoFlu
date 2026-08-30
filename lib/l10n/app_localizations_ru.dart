@@ -323,6 +323,11 @@ class SRu extends S {
   String get includeMode => 'Включить';
 
   @override
+  String includeModeTapAgainHint(String searchType) {
+    return 'Включить: $searchType (нажмите ещё раз для режима исключения)';
+  }
+
+  @override
   String get noResults => 'Нет результатов';
 
   @override
@@ -393,6 +398,18 @@ class SRu extends S {
       'Заблокировано — удерживайте субтитры для разблокировки';
 
   @override
+  String get floatingLyricClickThrough =>
+      'Сквозные клики для плавающих субтитров';
+
+  @override
+  String get floatingLyricClickThroughEnabled =>
+      'Включено — субтитры игнорируют действия мыши';
+
+  @override
+  String get floatingLyricClickThroughDisabled =>
+      'Выключено — субтитры можно перетаскивать';
+
+  @override
   String get floatingFPS => 'Показать FPS';
 
   @override
@@ -457,7 +474,7 @@ class SRu extends S {
 
   @override
   String get liquidGlassNavigationDesc =>
-      'Стеклянная навигация и мини-плеер; включено по умолчанию при поддержке.';
+      'Стеклянная навигация и мини-плеер; включено по умолчанию на платформах Apple с ОС 26+.';
 
   @override
   String get fallbackGlassTransparency => 'Прозрачность Liquid Glass';
@@ -961,6 +978,40 @@ class SRu extends S {
 
   @override
   String get audioFormatSubtitle => 'Приоритет аудиоформатов';
+
+  @override
+  String get audioTapPlaylistMode => 'Режим добавления в плейлист';
+
+  @override
+  String get selectAudioTapPlaylistMode =>
+      'Выберите, как нажатие на аудио изменяет плейлист:';
+
+  @override
+  String get audioTapPlaylistModeReplace => 'Режим замены';
+
+  @override
+  String get audioTapPlaylistModeReplaceDescription =>
+      'Заменить текущий плейлист всеми доступными аудиофайлами из папки выбранного файла.';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectory => 'Режим добавления';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectoryDescription =>
+      'Добавить в конец все доступные аудиофайлы из папки выбранного файла. Дубликаты не добавляются.';
+
+  @override
+  String get audioTapPlaylistModeAppendSingle => 'Добавление одного аудио';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleDescription =>
+      'Добавить в конец только выбранный аудиофайл. Дубликаты не добавляются.';
+
+  @override
+  String get audioTapPlaylistModeAppendChip => 'Режим добавления';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleChip => 'Добавление одного аудио';
 
   @override
   String get preloadNextTitle => 'Предзагрузка следующего';
@@ -2160,23 +2211,7 @@ class SRu extends S {
   String get floatingSubtitle => 'Плавающие субтитры';
 
   @override
-  String get appendMode => 'Режим добавления';
-
-  @override
-  String get appendModeStatusOn => 'Режим добавления: Вкл';
-
-  @override
-  String get appendModeStatusOff => 'Режим добавления: Выкл';
-
-  @override
   String get playlistEmpty => 'Плейлист пуст';
-
-  @override
-  String get appendModeEnabled => 'Режим добавления включён';
-
-  @override
-  String get appendModeHint =>
-      'Следующие нажатия на аудио добавят треки в конец текущего плейлиста, а не заменят его.\nДубликаты не добавляются.';
 
   @override
   String get gotIt => 'Понятно';
@@ -3719,6 +3754,26 @@ class SRu extends S {
   @override
   String get invalidProxyAddress =>
       'Введите корректный адрес и порт HTTP-прокси';
+
+  @override
+  String get proxyModeDirect => 'Прямое подключение';
+
+  @override
+  String get proxyModeSystem => 'Системный прокси';
+
+  @override
+  String get proxyModeManual => 'Ручной прокси';
+
+  @override
+  String get proxyModeDirectDescription => 'Подключаться без прокси';
+
+  @override
+  String get proxyModeSystemDescription =>
+      'Использовать настройки прокси операционной системы';
+
+  @override
+  String get proxyModeManualDescription =>
+      'Использовать настроенный ниже HTTP-прокси';
 
   @override
   String get playlistDisplayFormat => 'Вид плейлиста';

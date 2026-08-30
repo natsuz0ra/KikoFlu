@@ -37,11 +37,13 @@ import '../widgets/image_gallery_screen.dart';
 class WorkDetailScreen extends ConsumerStatefulWidget {
   final Work work;
   final String? heroTag;
+  final ImageProvider<Object>? initialCoverImageProvider;
 
   const WorkDetailScreen({
     super.key,
     required this.work,
     this.heroTag,
+    this.initialCoverImageProvider,
   });
 
   @override
@@ -65,6 +67,17 @@ class _WorkDetailScreenState extends ConsumerState<WorkDetailScreen> {
   String? _translatedTitle; // 翻译后的标题
   bool _showTranslation = false; // 是否显示翻译
   bool _isTranslating = false; // 是否正在翻译
+
+  Future<void> _restoreMiniPlayerAfterModalExit(VoidCallback clearFlag) async {
+    // A pushed route's Future completes when pop starts, before its reverse
+    // transition leaves the overlay. Keep native glass suppressed until then.
+    await Future<void>.delayed(kThemeAnimationDuration);
+    if (mounted) {
+      setState(clearFlag);
+    } else {
+      clearFlag();
+    }
+  }
 
   @override
   void initState() {
@@ -249,7 +262,7 @@ class _WorkDetailScreenState extends ConsumerState<WorkDetailScreen> {
   Future<void> _showFileSelectionDialog() async {
     // 防抖: 避免 iOS 上快速双击导致同一路由被重复创建又立即被关闭
     if (_isOpeningFileSelection) return;
-    _isOpeningFileSelection = true;
+    setState(() => _isOpeningFileSelection = true);
 
     final preparedWorkFuture = _prepareWorkForFileSelection();
 
@@ -303,7 +316,9 @@ class _WorkDetailScreenState extends ConsumerState<WorkDetailScreen> {
         },
       );
     } finally {
-      _isOpeningFileSelection = false;
+      await _restoreMiniPlayerAfterModalExit(
+        () => _isOpeningFileSelection = false,
+      );
     }
   }
 
@@ -395,28 +410,32 @@ class _WorkDetailScreenState extends ConsumerState<WorkDetailScreen> {
   // 显示收藏状态选择对话框
   Future<void> _showProgressDialog() async {
     if (_isOpeningProgressDialog) return; // 防抖避免 iOS 双击导致立即关闭
-    _isOpeningProgressDialog = true;
+    setState(() => _isOpeningProgressDialog = true);
 
     final manager = WorkBookmarkManager(ref: ref, context: context);
 
-    await manager.showMarkDialog(
-      workId: widget.work.id,
-      currentProgress: _currentProgress,
-      currentRating: _currentRating,
-      workTitle: widget.work.title,
-      onChanged: (newProgress, newRating) {
-        // 更新本地状态
-        if (mounted) {
-          setState(() {
-            _currentProgress = newProgress;
-            _currentRating = newRating;
-            _isUpdatingProgress = false;
-          });
-        }
-      },
-    );
-
-    _isOpeningProgressDialog = false;
+    try {
+      await manager.showMarkDialog(
+        workId: widget.work.id,
+        currentProgress: _currentProgress,
+        currentRating: _currentRating,
+        workTitle: widget.work.title,
+        onChanged: (newProgress, newRating) {
+          // 更新本地状态
+          if (mounted) {
+            setState(() {
+              _currentProgress = newProgress;
+              _currentRating = newRating;
+              _isUpdatingProgress = false;
+            });
+          }
+        },
+      );
+    } finally {
+      await _restoreMiniPlayerAfterModalExit(
+        () => _isOpeningProgressDialog = false,
+      );
+    }
   }
 
   // 显示评分详情弹窗
@@ -444,6 +463,8 @@ class _WorkDetailScreenState extends ConsumerState<WorkDetailScreen> {
     final systemOverlayStyle = transparentSystemBarsForBrightness(brightness);
 
     return GlobalAudioPlayerWrapper(
+      suppressLiquidGlassMiniPlayer:
+          _isOpeningFileSelection || _isOpeningProgressDialog,
       child: Scaffold(
         floatingActionButton: const DownloadFab(),
         appBar: ScrollableAppBar(
@@ -631,22 +652,11 @@ class _WorkDetailScreenState extends ConsumerState<WorkDetailScreen> {
               imageUrl: coverUrl,
               cacheKey: 'work_cover_${widget.work.id}',
               fit: BoxFit.contain,
-              placeholder: (context, url) => Container(
-                height: 300,
-                color: Colors.grey[300],
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                height: 300,
-                color: Colors.grey[300],
-                child: const Icon(
-                  Icons.image_not_supported,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-              ),
+              placeholder: (context, url) => _buildCoverPlaceholder(),
+              errorWidget: (context, url, error) => _buildCoverPlaceholder(),
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
+              placeholderFadeInDuration: Duration.zero,
             ),
             if (_showHDImage && _hdImageProvider != null)
               Image(
@@ -660,6 +670,33 @@ class _WorkDetailScreenState extends ConsumerState<WorkDetailScreen> {
         );
       },
       info: infoWidget,
+    );
+  }
+
+  Widget _buildCoverPlaceholder() {
+    final initialCover = widget.initialCoverImageProvider;
+    if (initialCover != null) {
+      return Image(
+        image: initialCover,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildMissingCoverPlaceholder(),
+      );
+    }
+    return _buildMissingCoverPlaceholder();
+  }
+
+  Widget _buildMissingCoverPlaceholder() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 300,
+      color: colorScheme.surfaceContainerHighest,
+      child: Icon(
+        Icons.image_not_supported,
+        size: 64,
+        color: colorScheme.onSurfaceVariant,
+      ),
     );
   }
 }

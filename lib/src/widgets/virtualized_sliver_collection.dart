@@ -6,9 +6,11 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../utils/scroll_optimization.dart';
+import '../utils/ui_tokens.dart';
 import 'liquid_glass_layout.dart';
 import 'overscroll_next_page_detector.dart';
 import 'pagination_bar.dart';
+import 'async_state_view.dart';
 
 enum VirtualizedCollectionLayout { list, grid, masonry }
 
@@ -236,6 +238,7 @@ class _VirtualizedSliverCollectionState<T>
   late bool _ownsController;
   final Map<int, BuildContext> _mountedItems = {};
   final Set<Object> _prefetchedIds = {};
+  int? _mountedTailIndex;
   bool _inspectionScheduled = false;
   bool _requestInFlight = false;
   bool _pageRequestInFlight = false;
@@ -291,7 +294,9 @@ class _VirtualizedSliverCollectionState<T>
   }
 
   void _handleScroll() {
-    if (_tracksItems) _scheduleInspection();
+    // Visible-item reporting needs frame-level updates. Prefetch-only feeds are
+    // driven by mount changes and one final inspection when scrolling stops.
+    if (widget.onVisibleItemsChanged != null) _scheduleInspection();
     if (widget.pagination == null && widget.onLoadMore != null) {
       _maybeLoadMore();
     }
@@ -316,11 +321,28 @@ class _VirtualizedSliverCollectionState<T>
 
   void _registerItem(int index, BuildContext context) {
     _mountedItems[index] = context;
-    _scheduleInspection();
+    final previousTail = _mountedTailIndex;
+    if (previousTail == null || index >= previousTail) {
+      _mountedTailIndex = index;
+      _scheduleInspection();
+    }
   }
 
   void _unregisterItem(int index, BuildContext context) {
-    if (identical(_mountedItems[index], context)) _mountedItems.remove(index);
+    if (!identical(_mountedItems[index], context)) return;
+    _mountedItems.remove(index);
+    if (_mountedTailIndex == index) {
+      _mountedTailIndex = _findMountedTailIndex();
+    }
+  }
+
+  int? _findMountedTailIndex() {
+    int? tail;
+    for (final index in _mountedItems.keys) {
+      if (index < 0 || index >= widget.items.length) continue;
+      if (tail == null || index > tail) tail = index;
+    }
+    return tail;
   }
 
   void _inspectVisibleItems() {
@@ -382,18 +404,20 @@ class _VirtualizedSliverCollectionState<T>
   void _prefetchAfterMountedItems() {
     if (widget.onPrefetch == null || _mountedItems.isEmpty) return;
 
-    final mountedIndices = _mountedItems.keys
-        .where((index) => index >= 0 && index < widget.items.length)
-        .toList(growable: false);
-    if (mountedIndices.isEmpty) return;
-    final lastMountedIndex = mountedIndices.reduce((a, b) => a > b ? a : b);
-    final anchorContext = _mountedItems[lastMountedIndex];
+    var tailIndex = _mountedTailIndex;
+    if (tailIndex == null || tailIndex < 0 || tailIndex >= widget.items.length) {
+      tailIndex = _findMountedTailIndex();
+      _mountedTailIndex = tailIndex;
+    }
+    if (tailIndex == null) return;
+
+    final anchorContext = _mountedItems[tailIndex];
     if (anchorContext == null ||
         _controller.position.recommendDeferredLoading(anchorContext)) {
       return;
     }
 
-    _dispatchPrefetch(lastMountedIndex + 1);
+    _dispatchPrefetch(tailIndex + 1);
   }
 
   void _dispatchPrefetch(int start) {
@@ -516,7 +540,10 @@ class _VirtualizedSliverCollectionState<T>
   Widget _buildInitialStatus() {
     if (widget.isInitialLoading) {
       return widget.loadingBuilder?.call(context) ??
-          const Center(child: CircularProgressIndicator());
+          const AsyncStateView(
+            icon: CircularProgressIndicator(),
+            padding: EdgeInsets.zero,
+          );
     }
     if (widget.error != null) {
       return (widget.errorBuilder ?? _defaultErrorBuilder)(
@@ -533,25 +560,20 @@ class _VirtualizedSliverCollectionState<T>
     Object error,
     VoidCallback retry,
   ) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline,
-                color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 12),
-            Text(error.toString(), textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: retry,
-              icon: const Icon(Icons.refresh),
-              label: Text(S.of(context).retry),
-            ),
-          ],
-        ),
+    return AsyncStateView(
+      padding: const EdgeInsets.all(UiSpacing.xLarge),
+      icon: Icon(
+        Icons.error_outline,
+        color: Theme.of(context).colorScheme.error,
       ),
+      message: Text(error.toString(), textAlign: TextAlign.center),
+      action: FilledButton.tonalIcon(
+        onPressed: retry,
+        icon: const Icon(Icons.refresh),
+        label: Text(S.of(context).retry),
+      ),
+      iconToTitleSpacing: UiSpacing.medium,
+      messageToActionSpacing: UiSpacing.medium,
     );
   }
 
@@ -707,6 +729,17 @@ class _VirtualizedSliverCollectionState<T>
         hasNextPage: pagination.hasMore,
         isLoading: pagination.isLoading || _pageRequestInFlight,
         bottomInset: liquidGlassDockExtent,
+        child: scrollView,
+      );
+    }
+
+    if (widget.onPrefetch != null &&
+        widget.onVisibleItemsChanged == null) {
+      scrollView = NotificationListener<ScrollEndNotification>(
+        onNotification: (_) {
+          _scheduleInspection();
+          return false;
+        },
         child: scrollView,
       );
     }

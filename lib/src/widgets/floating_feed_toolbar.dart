@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,8 +38,8 @@ class FloatingFeedToolAction {
 }
 
 /// Two floating capsules used by feed surfaces: modes on the left and tools
-/// on the right. The surface remains translucent without applying extra blur
-/// filters, so a page only needs one shared top backdrop filter.
+/// on the right. The surface remains translucent while the page-level top
+/// treatment stays a lightweight gradient scrim.
 class FloatingFeedToolbar extends StatelessWidget {
   const FloatingFeedToolbar({
     super.key,
@@ -62,7 +60,7 @@ class FloatingFeedToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final toolbar = SizedBox(
       height: 48,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -146,6 +144,7 @@ class FloatingFeedToolbar extends StatelessWidget {
         },
       ),
     );
+    return FloatingToolbarGlassGroup(child: toolbar);
   }
 }
 
@@ -230,17 +229,58 @@ class FloatingFeedModeSelector extends StatelessWidget {
   }
 }
 
-class _ModeDropdown extends StatelessWidget {
+/// Shares one native sampling surface across nearby floating glass controls.
+class FloatingToolbarGlassGroup extends ConsumerWidget {
+  const FloatingToolbarGlassGroup({
+    super.key,
+    required this.child,
+    this.spacing = 7,
+  });
+
+  final Widget child;
+  final double spacing;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final useLiquidGlass = ref.watch(liquidGlassNavigationProvider);
+    if (!useLiquidGlass || !LiquidGlass.isNativePlatform) return child;
+    return LiquidGlassGroup(spacing: spacing, child: child);
+  }
+}
+
+/// Places separated toolbar capsules in one native glass sampling group.
+class FloatingToolbarGlassRow extends StatelessWidget {
+  const FloatingToolbarGlassRow({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingToolbarGlassGroup(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _ModeDropdown extends ConsumerWidget {
   const _ModeDropdown({required this.actions, required this.maxWidth});
 
   final List<FloatingFeedModeAction> actions;
   final double maxWidth;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = actions.indexWhere((action) => action.isSelected);
     final effectiveIndex = selectedIndex < 0 ? 0 : selectedIndex;
     final selected = actions[effectiveIndex];
+    final useLiquidGlass = ref.watch(liquidGlassNavigationProvider);
+    if (useLiquidGlass) {
+      return _buildLiquidGlassMenu(context, ref, selected);
+    }
+
     return SizedBox(
       key: const ValueKey('feed-mode-dropdown'),
       height: 40,
@@ -292,6 +332,116 @@ class _ModeDropdown extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLiquidGlassMenu(
+    BuildContext context,
+    WidgetRef ref,
+    FloatingFeedModeAction selected,
+  ) {
+    final fallbackIntensity = ref.watch(fallbackGlassTransparencyProvider);
+    final controller = MenuController();
+    return SizedBox(
+      key: const ValueKey('feed-mode-dropdown'),
+      height: 40,
+      width: maxWidth,
+      child: MenuAnchor(
+        controller: controller,
+        consumeOutsideTap: true,
+        alignmentOffset: const Offset(0, 4),
+        style: MenuStyle(
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(0),
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          ),
+        ),
+        menuChildren: [
+          LiquidGlassGroup(
+            spacing: 0,
+            child: LiquidGlassContainer(
+              shape: const LiquidGlassShape.roundedRectangle(18),
+              style: LiquidGlassStyle.regular,
+              fallbackIntensity: fallbackIntensity,
+              child: Material(
+                type: MaterialType.transparency,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: maxWidth,
+                    maxHeight: 300,
+                  ),
+                  child: SingleChildScrollView(
+                    primary: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final action in actions)
+                          MenuItemButton(
+                            onPressed: () {
+                              controller.close();
+                              action.onPressed();
+                            },
+                            style: const ButtonStyle(
+                              padding: WidgetStatePropertyAll(
+                                EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                              ),
+                            ),
+                            leadingIcon: Icon(action.icon, size: 18),
+                            trailingIcon: action.isSelected
+                                ? Icon(
+                                    Icons.check,
+                                    size: 18,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  )
+                                : null,
+                            child: Text(action.label),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+        builder: (context, controller, child) {
+          return InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () =>
+                controller.isOpen ? controller.close() : controller.open(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Icon(selected.icon, size: 18),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      selected.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_drop_down, size: 20),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -347,14 +497,21 @@ class FloatingToolbarSurface extends ConsumerWidget {
           child: content,
         );
       }
+      final glass = LiquidGlassContainer(
+        shape: const LiquidGlassShape.capsule(),
+        style: LiquidGlassStyle.regular,
+        fallbackIntensity: fallbackGlassTransparency,
+        child: LiquidGlass.isNativePlatform
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(_radius),
+                child: content,
+              )
+            : content,
+      );
+      if (LiquidGlass.isNativePlatform) return glass;
       return ClipRRect(
         borderRadius: BorderRadius.circular(_radius),
-        child: LiquidGlassContainer(
-          shape: const LiquidGlassShape.capsule(),
-          style: LiquidGlassStyle.regular,
-          fallbackIntensity: fallbackGlassTransparency,
-          child: content,
-        ),
+        child: glass,
       );
     }
 
@@ -412,9 +569,6 @@ class FloatingToolbarPositionFollower extends StatefulWidget {
 class _FloatingToolbarPositionFollowerState
     extends State<FloatingToolbarPositionFollower> {
   late bool _primaryToolbarVisible;
-  final LayerLink _toolbarLayerLink = LayerLink();
-  final OverlayPortalController _overlayController = OverlayPortalController()
-    ..show();
 
   @override
   void initState() {
@@ -453,26 +607,7 @@ class _FloatingToolbarPositionFollowerState
       top: _primaryToolbarVisible ? widget.visibleTop : widget.hiddenTop,
       left: widget.left,
       right: widget.right,
-      // Paint the toolbar in the root overlay so a page-level backdrop blur
-      // cannot cover the native glass capsule.
-      child: LayoutBuilder(
-        builder: (context, constraints) => OverlayPortal(
-          controller: _overlayController,
-          overlayLocation: OverlayChildLocation.rootOverlay,
-          overlayChildBuilder: (context) => CompositedTransformFollower(
-            link: _toolbarLayerLink,
-            showWhenUnlinked: false,
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: constraints.maxWidth, child: widget.child),
-            ),
-          ),
-          child: CompositedTransformTarget(
-            link: _toolbarLayerLink,
-            child: const SizedBox(height: 48),
-          ),
-        ),
-      ),
+      child: widget.child,
     );
   }
 }
@@ -751,13 +886,14 @@ class FloatingToolbarIconButton extends StatelessWidget {
   }
 }
 
-/// A shallow, single-pass backdrop blur whose opacity fades into the content.
-/// Keeping the filtered area bounded avoids applying blur to the whole feed.
-class ProgressiveTopBlur extends StatelessWidget {
-  const ProgressiveTopBlur({super.key, required this.height, this.sigma = 14});
+/// A lightweight top scrim whose opacity fades into the scrolling content.
+///
+/// This intentionally avoids a backdrop blur: sampling a moving feed behind a
+/// blur every frame is expensive on high-refresh-rate displays.
+class ProgressiveTopScrim extends StatelessWidget {
+  const ProgressiveTopScrim({super.key, required this.height});
 
   final double height;
-  final double sigma;
 
   @override
   Widget build(BuildContext context) {
@@ -776,36 +912,17 @@ class ProgressiveTopBlur extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: double.infinity,
-        child: ClipRect(
-          child: ShaderMask(
-            blendMode: BlendMode.dstIn,
-            shaderCallback: (bounds) => const LinearGradient(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.white, Colors.white, Colors.transparent],
-              stops: [0, 0.58, 1],
-            ).createShader(bounds),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(
-                sigmaX: sigma,
-                sigmaY: sigma,
-                tileMode: TileMode.decal,
-              ),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      surface.withValues(alpha: 0.72),
-                      surface.withValues(alpha: 0.34),
-                      surface.withValues(alpha: 0),
-                    ],
-                    stops: const [0, 0.58, 1],
-                  ),
-                ),
-                child: const SizedBox.expand(),
-              ),
+              colors: [
+                surface.withValues(alpha: 0.78),
+                surface.withValues(alpha: 0.42),
+                surface.withValues(alpha: 0),
+              ],
+              stops: const [0, 0.58, 1],
             ),
           ),
         ),

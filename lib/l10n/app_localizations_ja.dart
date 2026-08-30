@@ -320,6 +320,11 @@ class SJa extends S {
   String get includeMode => '含む';
 
   @override
+  String includeModeTapAgainHint(String searchType) {
+    return '含む：$searchType（もう一度タップすると除外モードに切り替わります）';
+  }
+
+  @override
   String get noResults => '結果なし';
 
   @override
@@ -385,6 +390,15 @@ class SJa extends S {
   String get floatingLyricTouchDisabled => 'ロック中 - 長押しでロック解除';
 
   @override
+  String get floatingLyricClickThrough => 'フローティング字幕のクリック透過';
+
+  @override
+  String get floatingLyricClickThroughEnabled => '有効 - フローティング字幕がマウス操作を無視します';
+
+  @override
+  String get floatingLyricClickThroughDisabled => '無効 - フローティング字幕をドラッグできます';
+
+  @override
   String get floatingFPS => 'FPS表示';
 
   @override
@@ -445,7 +459,7 @@ class SJa extends S {
 
   @override
   String get liquidGlassNavigationDesc =>
-      'ガラス素材のナビゲーションとミニプレーヤー。対応環境ではデフォルトで有効';
+      'ガラス素材のナビゲーションとミニプレーヤー。Apple 系 OS 26 以降ではデフォルトで有効';
 
   @override
   String get fallbackGlassTransparency => 'リキッドグラスの透明度';
@@ -937,6 +951,39 @@ class SJa extends S {
 
   @override
   String get audioFormatSubtitle => '音声形式の優先順位';
+
+  @override
+  String get audioTapPlaylistMode => 'プレイリストへの追加方法';
+
+  @override
+  String get selectAudioTapPlaylistMode => '音声をタップしたときのプレイリスト更新方法を選択：';
+
+  @override
+  String get audioTapPlaylistModeReplace => '置き換えモード';
+
+  @override
+  String get audioTapPlaylistModeReplaceDescription =>
+      'タップした音声と同じフォルダー内の再生可能な音声すべてで現在のプレイリストを置き換えます。';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectory => '追加モード';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectoryDescription =>
+      'タップした音声と同じフォルダー内の再生可能な音声をすべて末尾に追加します。既存のトラックは重複しません。';
+
+  @override
+  String get audioTapPlaylistModeAppendSingle => '単一音声追加モード';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleDescription =>
+      'タップした音声だけを末尾に追加します。既存のトラックは重複しません。';
+
+  @override
+  String get audioTapPlaylistModeAppendChip => '追加モード';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleChip => '単一音声追加モード';
 
   @override
   String get preloadNextTitle => '次をプリロード';
@@ -2101,23 +2148,7 @@ class SJa extends S {
   String get floatingSubtitle => 'フローティング字幕';
 
   @override
-  String get appendMode => '追加モード';
-
-  @override
-  String get appendModeStatusOn => '追加モード：オン';
-
-  @override
-  String get appendModeStatusOff => '追加モード：オフ';
-
-  @override
   String get playlistEmpty => 'プレイリストが空です';
-
-  @override
-  String get appendModeEnabled => '追加モードが有効です';
-
-  @override
-  String get appendModeHint =>
-      '次にタップした音声は現在のプレイリストの末尾に追加されます。リスト全体を置き換えません。\n同じトラックは重複追加されません。';
 
   @override
   String get gotIt => '了解';
@@ -3596,6 +3627,24 @@ class SJa extends S {
 
   @override
   String get invalidProxyAddress => '有効な HTTP プロキシのアドレスとポートを入力してください';
+
+  @override
+  String get proxyModeDirect => '直接接続';
+
+  @override
+  String get proxyModeSystem => 'システムプロキシ';
+
+  @override
+  String get proxyModeManual => '手動プロキシ';
+
+  @override
+  String get proxyModeDirectDescription => 'プロキシを使用せずに接続';
+
+  @override
+  String get proxyModeSystemDescription => 'オペレーティングシステムのプロキシ設定を使用';
+
+  @override
+  String get proxyModeManualDescription => '下で設定した HTTP プロキシを使用';
 
   @override
   String get playlistDisplayFormat => 'プレイリストの表示形式';

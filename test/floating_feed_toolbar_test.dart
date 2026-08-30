@@ -113,6 +113,75 @@ void main() {
     expect(material.type, MaterialType.transparency);
   });
 
+  testWidgets('groups native feed capsules into one platform view', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await container
+        .read(liquidGlassNavigationProvider.notifier)
+        .setEnabled(true);
+
+    await tester.pumpWidget(
+      _testApp(
+        FloatingFeedToolbar(
+          modeActions: [
+            FloatingFeedModeAction(
+              icon: Icons.grid_view,
+              label: 'All',
+              isSelected: true,
+              onPressed: () {},
+            ),
+          ],
+          toolActions: [
+            FloatingFeedToolAction(
+              icon: Icons.sort,
+              tooltip: 'Sort',
+              onPressed: () {},
+            ),
+          ],
+        ),
+        container: container,
+      ),
+    );
+
+    expect(find.byType(LiquidGlassGroup), findsOneWidget);
+    expect(find.byType(LiquidGlassContainer), findsNWidgets(2));
+    expect(find.byType(UiKitView), findsOneWidget);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('does not clip the native platform view in Flutter', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await container
+        .read(liquidGlassNavigationProvider.notifier)
+        .setEnabled(true);
+
+    await tester.pumpWidget(
+      _testApp(
+        const FloatingToolbarSurface(child: SizedBox(width: 80, height: 40)),
+        container: container,
+      ),
+    );
+
+    expect(find.byType(UiKitView), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.byType(UiKitView),
+        matching: find.byType(ClipRRect),
+      ),
+      findsNothing,
+    );
+    debugDefaultTargetPlatformOverride = null;
+  });
+
   testWidgets('fallback liquid glass keeps page content visible', (
     tester,
   ) async {
@@ -151,32 +220,34 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('progressive top treatment uses one bounded blur pass', (
+  testWidgets('progressive top treatment avoids dynamic backdrop filters', (
     tester,
   ) async {
     await tester.pumpWidget(
       _testApp(
         const MediaQuery(
           data: MediaQueryData(padding: EdgeInsets.only(top: 44)),
-          child: ProgressiveTopBlur(height: 96),
+          child: ProgressiveTopScrim(height: 96),
         ),
       ),
     );
 
-    expect(find.byType(BackdropFilter), findsOneWidget);
-    expect(find.byType(ShaderMask), findsOneWidget);
-    expect(tester.getSize(find.byType(ProgressiveTopBlur)).height, 96);
+    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.byType(ShaderMask), findsNothing);
+    expect(find.byType(DecoratedBox), findsOneWidget);
+    expect(tester.getSize(find.byType(ProgressiveTopScrim)).height, 96);
   });
 
   testWidgets('top treatment is omitted without a status bar inset', (
     tester,
   ) async {
-    await tester.pumpWidget(_testApp(const ProgressiveTopBlur(height: 96)));
+    await tester.pumpWidget(_testApp(const ProgressiveTopScrim(height: 96)));
 
     expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.byType(DecoratedBox), findsNothing);
   });
 
-  testWidgets('secondary toolbar follows the primary toolbar position', (
+  testWidgets('secondary toolbar stays in the page while following primary', (
     tester,
   ) async {
     final primaryVisible = ValueNotifier(true);
@@ -208,8 +279,8 @@ void main() {
     final visibleTop = tester
         .getTopLeft(find.byKey(const ValueKey('secondary-toolbar')))
         .dy;
-    expect(find.byType(OverlayPortal), findsOneWidget);
-    expect(find.byType(CompositedTransformFollower), findsOneWidget);
+    expect(find.byType(OverlayPortal), findsNothing);
+    expect(find.byType(CompositedTransformFollower), findsNothing);
     expect(
       tester.getSize(find.byKey(const ValueKey('secondary-toolbar'))).width,
       390,
@@ -332,6 +403,55 @@ void main() {
     await tester.tap(find.text('Filter option 1'));
     await tester.pumpAndSettle();
     expect(selectedMode, 1);
+  });
+
+  testWidgets('native mode dropdown uses an independent bounded glass group', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await container
+        .read(liquidGlassNavigationProvider.notifier)
+        .setEnabled(true);
+
+    await tester.pumpWidget(
+      _testApp(
+        FloatingFeedToolbar(
+          modeActions: [
+            for (var index = 0; index < 8; index++)
+              FloatingFeedModeAction(
+                icon: Icons.filter_alt,
+                label: 'Filter option $index',
+                isSelected: index == 0,
+                onPressed: () {},
+              ),
+          ],
+          toolActions: [
+            FloatingFeedToolAction(
+              icon: Icons.sort,
+              tooltip: 'Sort',
+              onPressed: () {},
+            ),
+          ],
+        ),
+        container: container,
+      ),
+    );
+
+    expect(find.byType(LiquidGlassGroup), findsOneWidget);
+    expect(find.byType(UiKitView), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('feed-mode-dropdown')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Filter option 1'), findsOneWidget);
+    expect(find.byType(LiquidGlassContainer), findsNWidgets(3));
+    expect(find.byType(LiquidGlassGroup), findsNWidgets(2));
+    expect(find.byType(UiKitView), findsNWidgets(2));
+    final menuSurface = tester.getSize(find.byType(LiquidGlassContainer).last);
+    expect(menuSurface.height, lessThanOrEqualTo(300));
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets('fills a narrow mode capsule without horizontal scrolling', (

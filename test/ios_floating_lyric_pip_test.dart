@@ -33,13 +33,77 @@ void main() {
     );
     expect(
       source,
-      contains('displayLayer.opacity = 1'),
-      reason: 'The PiP source must not inherit the old near-transparent output.',
+      contains('sampleBufferHeartbeatInterval: TimeInterval = 0.25'),
+      reason: 'Static lyrics still need a live sample-buffer cadence for PiP.',
     );
     expect(
       source,
-      contains('width: 1, height: 1'),
-      reason: 'The source layer must not cover the Flutter surface.',
+      contains('startSampleBufferHeartbeat()'),
+      reason: 'The cadence must start with the PiP lifecycle.',
+    );
+    expect(
+      source,
+      contains('sampleBufferFrameGeneration == generation'),
+      reason: 'Heartbeat frames should reuse pixels until the lyric changes.',
+    );
+    expect(
+      source,
+      contains('sampleBufferRenderer.enqueue(sampleBuffer)'),
+      reason:
+          'iOS 17+ must use the renderer API instead of the deprecated layer queue.',
+    );
+    expect(
+      source,
+      contains('CMSampleBufferCreateForImageBuffer'),
+      reason: 'Image-backed sample buffers should explicitly mark data ready.',
+    );
+    expect(
+      source,
+      contains('removingDisplayedImage: true'),
+      reason: 'Interrupted renderers must remove stale decoded images before resuming.',
+    );
+    expect(
+      source,
+      contains('stopSampleBufferHeartbeat()'),
+      reason: 'The cadence must stop when PiP closes.',
+    );
+    expect(
+      source,
+      contains('displayLayer.opacity = 1'),
+      reason:
+          'The PiP source must not inherit the old near-transparent output.',
+    );
+    expect(
+      source,
+      contains(
+        'displayLayer.bounds = CGRect(origin: .zero, size: logicalFrameSize)',
+      ),
+      reason:
+          'The PiP source needs nondegenerate point bounds with the frame aspect ratio.',
+    );
+    expect(source, contains('displayLayer.contentsScale = renderScale'));
+    expect(
+      source,
+      contains('parentLayer.insertSublayer(displayLayer, below: view.layer)'),
+      reason:
+          'The full-size source must stay behind Flutter instead of covering it.',
+    );
+    expect(
+      source,
+      isNot(contains('displayLayer.frame = CGRect(x: 0, y: 0, width: 1')),
+      reason:
+          'A 1x1 source can produce a black PiP mirror on stricter iOS versions.',
+    );
+    expect(
+      source,
+      contains('kCVImageBufferCGColorSpaceKey'),
+      reason:
+          'Device rendering needs an explicit color space on the IOSurface.',
+    );
+    expect(
+      source,
+      contains('kCVImageBufferAlphaChannelIsOpaque'),
+      reason: 'The opaque lyric frame should publish matching alpha metadata.',
     );
     expect(
       source,
@@ -76,7 +140,13 @@ void main() {
     expect(nativeSource, contains('pip_health_check'));
     expect(nativeSource, contains('video_compositor_first_frame'));
     expect(nativeSource, contains('sample_buffer_frame_enqueued'));
+    expect(nativeSource, contains('sample_buffer_frame_content'));
+    expect(nativeSource, contains('sampleBufferLastCreationFailureStage'));
+    expect(nativeSource, contains('sampleBufferNonMonotonicTimestampCount'));
     expect(nativeSource, contains('sample_buffer_failed_to_decode'));
+    expect(nativeSource, contains('sample_buffer_cadence_stalled'));
+    expect(nativeSource, contains('sampleBufferMaximumEnqueueGapMilliseconds'));
+    expect(nativeSource, contains('stopRequestedByApp'));
     expect(dartSource, contains("case 'onDiagnostic':"));
     expect(dartSource, contains("tag: 'FloatingLyric.iOS'"));
   });

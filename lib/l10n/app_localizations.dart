@@ -708,6 +708,12 @@ abstract class S {
   /// **'Include'**
   String get includeMode;
 
+  /// No description provided for @includeModeTapAgainHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Include: {searchType} (tap again to switch to exclude mode)'**
+  String includeModeTapAgainHint(String searchType);
+
   /// No description provided for @noResults.
   ///
   /// In en, this message translates to:
@@ -834,6 +840,24 @@ abstract class S {
   /// **'Locked - Long press floating lyrics to unlock'**
   String get floatingLyricTouchDisabled;
 
+  /// No description provided for @floatingLyricClickThrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Floating Lyric Click-Through'**
+  String get floatingLyricClickThrough;
+
+  /// No description provided for @floatingLyricClickThroughEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled - Floating lyrics ignore mouse input'**
+  String get floatingLyricClickThroughEnabled;
+
+  /// No description provided for @floatingLyricClickThroughDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled - Floating lyrics can be dragged'**
+  String get floatingLyricClickThroughDisabled;
+
   /// No description provided for @floatingFPS.
   ///
   /// In en, this message translates to:
@@ -951,7 +975,7 @@ abstract class S {
   /// No description provided for @liquidGlassNavigationDesc.
   ///
   /// In en, this message translates to:
-  /// **'Glass navigation and mini player; enabled by default where supported.'**
+  /// **'Glass navigation and mini player; enabled by default on Apple OS 26+.'**
   String get liquidGlassNavigationDesc;
 
   /// No description provided for @fallbackGlassTransparency.
@@ -1859,6 +1883,66 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Audio format priority'**
   String get audioFormatSubtitle;
+
+  /// No description provided for @audioTapPlaylistMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist Add Mode'**
+  String get audioTapPlaylistMode;
+
+  /// No description provided for @selectAudioTapPlaylistMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how tapping audio updates the playlist:'**
+  String get selectAudioTapPlaylistMode;
+
+  /// No description provided for @audioTapPlaylistModeReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace Mode'**
+  String get audioTapPlaylistModeReplace;
+
+  /// No description provided for @audioTapPlaylistModeReplaceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the current playlist with every playable audio file in the tapped file\'s folder.'**
+  String get audioTapPlaylistModeReplaceDescription;
+
+  /// No description provided for @audioTapPlaylistModeAppendDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Append Mode'**
+  String get audioTapPlaylistModeAppendDirectory;
+
+  /// No description provided for @audioTapPlaylistModeAppendDirectoryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Append every playable audio file in the tapped file\'s folder. Existing tracks are not duplicated.'**
+  String get audioTapPlaylistModeAppendDirectoryDescription;
+
+  /// No description provided for @audioTapPlaylistModeAppendSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Single-Audio Append Mode'**
+  String get audioTapPlaylistModeAppendSingle;
+
+  /// No description provided for @audioTapPlaylistModeAppendSingleDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Append only the tapped audio file. Existing tracks are not duplicated.'**
+  String get audioTapPlaylistModeAppendSingleDescription;
+
+  /// No description provided for @audioTapPlaylistModeAppendChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Append Mode'**
+  String get audioTapPlaylistModeAppendChip;
+
+  /// No description provided for @audioTapPlaylistModeAppendSingleChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Single-Audio Append Mode'**
+  String get audioTapPlaylistModeAppendSingleChip;
 
   /// No description provided for @preloadNextTitle.
   ///
@@ -3972,41 +4056,11 @@ abstract class S {
   /// **'Floating Subtitle'**
   String get floatingSubtitle;
 
-  /// No description provided for @appendMode.
-  ///
-  /// In en, this message translates to:
-  /// **'Append Mode'**
-  String get appendMode;
-
-  /// No description provided for @appendModeStatusOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Append Mode: On'**
-  String get appendModeStatusOn;
-
-  /// No description provided for @appendModeStatusOff.
-  ///
-  /// In en, this message translates to:
-  /// **'Append Mode: Off'**
-  String get appendModeStatusOff;
-
   /// No description provided for @playlistEmpty.
   ///
   /// In en, this message translates to:
   /// **'Playlist is empty'**
   String get playlistEmpty;
-
-  /// No description provided for @appendModeEnabled.
-  ///
-  /// In en, this message translates to:
-  /// **'Append Mode Enabled'**
-  String get appendModeEnabled;
-
-  /// No description provided for @appendModeHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Audio tapped next will be appended to the end of the current playlist instead of replacing it.\nDuplicate tracks won\'t be added.'**
-  String get appendModeHint;
 
   /// No description provided for @gotIt.
   ///
@@ -6599,6 +6653,42 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Enter a valid HTTP proxy address and port'**
   String get invalidProxyAddress;
+
+  /// No description provided for @proxyModeDirect.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct'**
+  String get proxyModeDirect;
+
+  /// No description provided for @proxyModeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System proxy'**
+  String get proxyModeSystem;
+
+  /// No description provided for @proxyModeManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual proxy'**
+  String get proxyModeManual;
+
+  /// No description provided for @proxyModeDirectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect without a proxy'**
+  String get proxyModeDirectDescription;
+
+  /// No description provided for @proxyModeSystemDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the operating system proxy settings'**
+  String get proxyModeSystemDescription;
+
+  /// No description provided for @proxyModeManualDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the HTTP proxy configured below'**
+  String get proxyModeManualDescription;
 
   /// No description provided for @playlistDisplayFormat.
   ///

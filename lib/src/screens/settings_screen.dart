@@ -20,11 +20,13 @@ import '../providers/floating_lyric_provider.dart';
 import '../services/cache_service.dart';
 import '../services/translation_service.dart';
 import '../utils/snackbar_util.dart';
+import '../utils/ui_tokens.dart';
 import '../widgets/scrollable_appbar.dart';
 import '../widgets/download_fab.dart';
-import '../widgets/radio_option_group.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/liquid_glass_layout.dart';
+import '../widgets/radio_option_group.dart';
+import '../widgets/settings_option_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -105,12 +107,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     // 监听缓存刷新触发器（只在 build 中设置一次监听）
-    ref.listen<int>(
-      settingsCacheRefreshTriggerProvider,
-      (_, __) {
-        _updateCacheSize();
-      },
-    );
+    ref.listen<int>(settingsCacheRefreshTriggerProvider, (_, __) {
+      _updateCacheSize();
+    });
 
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
@@ -124,8 +123,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       floatingActionButton: const DownloadFab(),
       appBar: ScrollableAppBar(
-        title: Text(S.of(context).settingsTitle,
-            style: const TextStyle(fontSize: 18)),
+        title: Text(S.of(context).settingsTitle, style: UiTextStyles.pageTitle),
       ),
       body: isLandscape
           ? _buildLandscapeLayout(cards, dockExtent: dockExtent)
@@ -214,9 +212,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
           },
         ),
-        // 显示悬浮字幕 (Android & Windows & macOS & iOS)
+        // 显示悬浮字幕 (Android & Windows & Linux & macOS & iOS)
         if (Platform.isAndroid ||
             Platform.isWindows ||
+            Platform.isLinux ||
             Platform.isMacOS ||
             Platform.isIOS)
           _buildFloatingLyricTile(context),
@@ -293,7 +292,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               );
             },
           ),
-          if (Platform.isAndroid) ...[
+          if (Platform.isAndroid ||
+              Platform.isWindows ||
+              Platform.isLinux ||
+              Platform.isMacOS) ...[
             const SettingsDivider(),
             _buildFloatingLyricTouchTile(context),
           ],
@@ -308,18 +310,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  /// 悬浮字幕触摸开关（仅 Android）
+  /// 悬浮字幕交互开关。移动端控制长按锁定，桌面端控制点击穿透。
   Widget _buildFloatingLyricTouchTile(BuildContext context) {
     final touchEnabled = ref.watch(floatingLyricTouchEnabledProvider);
+    final l10n = S.of(context);
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     return SettingsSwitchTile(
       secondary: const SizedBox(width: 24),
-      title: S.of(context).floatingLyricTouch,
-      subtitle: touchEnabled
-          ? S.of(context).floatingLyricTouchEnabled
-          : S.of(context).floatingLyricTouchDisabled,
+      title: isDesktop
+          ? l10n.floatingLyricClickThrough
+          : l10n.floatingLyricTouch,
+      subtitle: isDesktop
+          ? touchEnabled
+                ? l10n.floatingLyricClickThroughDisabled
+                : l10n.floatingLyricClickThroughEnabled
+          : touchEnabled
+          ? l10n.floatingLyricTouchEnabled
+          : l10n.floatingLyricTouchDisabled,
       value: !touchEnabled,
-      onChanged: (value) async {
-        await ref.read(floatingLyricTouchEnabledProvider.notifier).toggle();
+      onChanged: (clickThroughEnabled) async {
+        await ref
+            .read(floatingLyricTouchEnabledProvider.notifier)
+            .setEnabled(!clickThroughEnabled);
       },
     );
   }
@@ -342,8 +355,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// 悬浮窗网速显示开关（仅 iOS）
   Widget _buildFloatingNetworkSpeedTile(BuildContext context) {
-    final networkSpeedEnabled =
-        ref.watch(floatingLyricNetworkSpeedEnabledProvider);
+    final networkSpeedEnabled = ref.watch(
+      floatingLyricNetworkSpeedEnabledProvider,
+    );
     return SettingsSwitchTile(
       secondary: const SizedBox(width: 24),
       title: S.of(context).floatingNetworkSpeed,
@@ -391,36 +405,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       (S.of(context).languageZh, const Locale('zh')),
       (
         S.of(context).languageZhTw,
-        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')
+        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       ),
       (S.of(context).languageEn, const Locale('en')),
       (S.of(context).languageJa, const Locale('ja')),
       (S.of(context).languageRu, const Locale('ru')),
     ];
-    final selectedIndex = options.indexWhere((option) =>
-        option.$2?.languageCode == currentLocale?.languageCode &&
-        option.$2?.scriptCode == currentLocale?.scriptCode);
+    final selectedIndex = options.indexWhere(
+      (option) =>
+          option.$2?.languageCode == currentLocale?.languageCode &&
+          option.$2?.scriptCode == currentLocale?.scriptCode,
+    );
 
     showDialog(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: Text(S.of(context).settingsLanguage),
-        children: [
-          RadioOptionGroup<int>(
-            groupValue: selectedIndex >= 0 ? selectedIndex : null,
-            options: [
-              for (var index = 0; index < options.length; index++)
-                RadioOption(
-                  value: index,
-                  title: Text(options[index].$1),
-                ),
-            ],
-            onChanged: (index) {
-              ref.read(localeProvider.notifier).setLocale(options[index].$2);
-              Navigator.of(context).pop();
-            },
-          ),
+      builder: (dialogContext) => CommonOptionDialog<int>(
+        title: S.of(dialogContext).settingsLanguage,
+        icon: Icons.language,
+        value: selectedIndex >= 0 ? selectedIndex : null,
+        options: [
+          for (var index = 0; index < options.length; index++)
+            RadioOption(value: index, title: Text(options[index].$1)),
         ],
+        onChanged: (index) {
+          ref.read(localeProvider.notifier).setLocale(options[index].$2);
+          return true;
+        },
       ),
     );
   }
@@ -471,9 +481,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           subtitle: S.of(context).uiSettingsSubtitle,
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const UiSettingsScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const UiSettingsScreen()),
             );
           },
         ),
@@ -494,11 +502,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: S.of(context).logTitle,
           subtitle: S.of(context).logSubtitle,
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const LogScreen(),
-              ),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (context) => const LogScreen()));
           },
         ),
         Consumer(
@@ -509,8 +515,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return SettingsListTile(
               leading: Stack(
                 children: [
-                  Icon(Icons.info_outline,
-                      color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.info_outline,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   // Red dot indicator for updates (only when not notified)
                   if (showRedDot)
                     Positioned(
@@ -551,10 +559,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.3),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -584,9 +591,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const AboutScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const AboutScreen()),
                 );
               },
             );
@@ -626,9 +631,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: dialogContext,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -733,8 +736,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Row(
               children: [
                 Expanded(
-                  child: Text(S.of(context).cacheManagement,
-                      style: const TextStyle(fontSize: 18)),
+                  child: Text(
+                    S.of(context).cacheManagement,
+                    style: UiTextStyles.pageTitle,
+                  ),
                 ),
                 if (isLandscape)
                   IconButton(
@@ -759,9 +764,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               children: [
                                 // 当前缓存大小
                                 SettingsSectionCard(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
                                   child: Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Column(
@@ -781,30 +786,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           style: TextStyle(
                                             fontSize: 24,
                                             fontWeight: FontWeight.bold,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
                                           ),
                                         ),
                                         const SizedBox(height: 8),
                                         LinearProgressIndicator(
                                           value: currentLimit > 0
                                               ? (currentSize /
-                                                      (currentLimit *
-                                                          1024 *
-                                                          1024))
-                                                  .clamp(0.0, 1.0)
+                                                        (currentLimit *
+                                                            1024 *
+                                                            1024))
+                                                    .clamp(0.0, 1.0)
                                               : 0.0,
                                           backgroundColor: Colors.grey[300],
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                            currentSize >
-                                                    currentLimit * 1024 * 1024
-                                                ? Colors.red
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
-                                          ),
+                                                currentSize >
+                                                        currentLimit *
+                                                            1024 *
+                                                            1024
+                                                    ? Colors.red
+                                                    : Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                              ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -823,9 +830,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 const SizedBox(height: 16),
                                 // 使用量详情
                                 SettingsSectionCard(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
                                   child: Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Column(
@@ -849,14 +856,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                               style: TextStyle(
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.bold,
-                                                color: currentSize >
+                                                color:
+                                                    currentSize >
                                                         currentLimit *
                                                             1024 *
                                                             1024
                                                     ? Colors.red
-                                                    : Theme.of(context)
-                                                        .colorScheme
-                                                        .primary,
+                                                    : Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
                                               ),
                                             ),
                                             Icon(
@@ -864,7 +872,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                       currentLimit * 1024 * 1024
                                                   ? Icons.warning_amber_rounded
                                                   : Icons.check_circle_outline,
-                                              color: currentSize >
+                                              color:
+                                                  currentSize >
                                                       currentLimit * 1024 * 1024
                                                   ? Colors.red
                                                   : Colors.green,
@@ -914,10 +923,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         });
                                       },
                                       onChangeEnd: (value) async {
-                                        final finalLimit =
-                                            sliderValueToMB(value);
+                                        final finalLimit = sliderValueToMB(
+                                          value,
+                                        );
                                         await CacheService.setCacheSizeLimit(
-                                            finalLimit);
+                                          finalLimit,
+                                        );
                                         if (mounted) {
                                           setState(() {}); // 刷新主界面
                                         }
@@ -930,9 +941,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
                                       ),
                                     ),
                                   ],
@@ -952,8 +963,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          const Icon(Icons.info_outline,
-                                              size: 16, color: Colors.blue),
+                                          const Icon(
+                                            Icons.info_outline,
+                                            size: 16,
+                                            color: Colors.blue,
+                                          ),
                                           const SizedBox(width: 8),
                                           Text(
                                             S.of(context).autoCleanTitle,
@@ -984,9 +998,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         // 当前缓存大小
                         SettingsSectionCard(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
@@ -1005,16 +1019,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 LinearProgressIndicator(
                                   value: currentLimit > 0
                                       ? (currentSize /
-                                              (currentLimit * 1024 * 1024))
-                                          .clamp(0.0, 1.0)
+                                                (currentLimit * 1024 * 1024))
+                                            .clamp(0.0, 1.0)
                                       : 0.0,
                                   backgroundColor: Colors.grey[300],
                                   valueColor: AlwaysStoppedAnimation<Color>(
@@ -1064,7 +1079,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               onChangeEnd: (value) async {
                                 final finalLimit = sliderValueToMB(value);
                                 await CacheService.setCacheSizeLimit(
-                                    finalLimit);
+                                  finalLimit,
+                                );
                                 if (mounted) {
                                   setState(() {}); // 刷新主界面
                                 }
@@ -1096,8 +1112,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.info_outline,
-                                      size: 16, color: Colors.blue),
+                                  const Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: Colors.blue,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     S.of(context).autoCleanTitle,

@@ -322,6 +322,11 @@ class SEn extends S {
   String get includeMode => 'Include';
 
   @override
+  String includeModeTapAgainHint(String searchType) {
+    return 'Include: $searchType (tap again to switch to exclude mode)';
+  }
+
+  @override
   String get noResults => 'No results';
 
   @override
@@ -392,6 +397,17 @@ class SEn extends S {
       'Locked - Long press floating lyrics to unlock';
 
   @override
+  String get floatingLyricClickThrough => 'Floating Lyric Click-Through';
+
+  @override
+  String get floatingLyricClickThroughEnabled =>
+      'Enabled - Floating lyrics ignore mouse input';
+
+  @override
+  String get floatingLyricClickThroughDisabled =>
+      'Disabled - Floating lyrics can be dragged';
+
+  @override
   String get floatingFPS => 'Show FPS';
 
   @override
@@ -456,7 +472,7 @@ class SEn extends S {
 
   @override
   String get liquidGlassNavigationDesc =>
-      'Glass navigation and mini player; enabled by default where supported.';
+      'Glass navigation and mini player; enabled by default on Apple OS 26+.';
 
   @override
   String get fallbackGlassTransparency => 'Liquid Glass Transparency';
@@ -957,6 +973,40 @@ class SEn extends S {
 
   @override
   String get audioFormatSubtitle => 'Audio format priority';
+
+  @override
+  String get audioTapPlaylistMode => 'Playlist Add Mode';
+
+  @override
+  String get selectAudioTapPlaylistMode =>
+      'Choose how tapping audio updates the playlist:';
+
+  @override
+  String get audioTapPlaylistModeReplace => 'Replace Mode';
+
+  @override
+  String get audioTapPlaylistModeReplaceDescription =>
+      'Replace the current playlist with every playable audio file in the tapped file\'s folder.';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectory => 'Append Mode';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectoryDescription =>
+      'Append every playable audio file in the tapped file\'s folder. Existing tracks are not duplicated.';
+
+  @override
+  String get audioTapPlaylistModeAppendSingle => 'Single-Audio Append Mode';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleDescription =>
+      'Append only the tapped audio file. Existing tracks are not duplicated.';
+
+  @override
+  String get audioTapPlaylistModeAppendChip => 'Append Mode';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleChip => 'Single-Audio Append Mode';
 
   @override
   String get preloadNextTitle => 'Preload Next Track';
@@ -2154,23 +2204,7 @@ class SEn extends S {
   String get floatingSubtitle => 'Floating Subtitle';
 
   @override
-  String get appendMode => 'Append Mode';
-
-  @override
-  String get appendModeStatusOn => 'Append Mode: On';
-
-  @override
-  String get appendModeStatusOff => 'Append Mode: Off';
-
-  @override
   String get playlistEmpty => 'Playlist is empty';
-
-  @override
-  String get appendModeEnabled => 'Append Mode Enabled';
-
-  @override
-  String get appendModeHint =>
-      'Audio tapped next will be appended to the end of the current playlist instead of replacing it.\nDuplicate tracks won\'t be added.';
 
   @override
   String get gotIt => 'Got it';
@@ -3698,6 +3732,26 @@ class SEn extends S {
 
   @override
   String get invalidProxyAddress => 'Enter a valid HTTP proxy address and port';
+
+  @override
+  String get proxyModeDirect => 'Direct';
+
+  @override
+  String get proxyModeSystem => 'System proxy';
+
+  @override
+  String get proxyModeManual => 'Manual proxy';
+
+  @override
+  String get proxyModeDirectDescription => 'Connect without a proxy';
+
+  @override
+  String get proxyModeSystemDescription =>
+      'Use the operating system proxy settings';
+
+  @override
+  String get proxyModeManualDescription =>
+      'Use the HTTP proxy configured below';
 
   @override
   String get playlistDisplayFormat => 'Playlist layout';

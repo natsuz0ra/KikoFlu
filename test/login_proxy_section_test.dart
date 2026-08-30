@@ -63,7 +63,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('高级配置'), findsNWidgets(2));
       expect(find.text('Cookie'), findsOneWidget);
-      await tester.tap(find.widgetWithText(SwitchListTile, '使用代理'));
+      await tester.tap(find.text('手动代理'));
       await tester.pumpAndSettle();
 
       final proxyField = find.byWidgetPredicate(
@@ -76,10 +76,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(container.read(proxySettingsProvider).address, '127.0.0.1:7890');
+      expect(container.read(proxySettingsProvider).mode.name, 'manual');
       expect(find.text('应用代理地址'), findsNothing);
       expect(find.text('Server Cookie'), findsNothing);
 
-      await tester.tap(find.widgetWithText(TextButton, '关闭'));
+      await tester.tap(find.byIcon(Icons.close));
       await tester.pumpAndSettle();
       expect(find.text('Cookie'), findsNothing);
     },

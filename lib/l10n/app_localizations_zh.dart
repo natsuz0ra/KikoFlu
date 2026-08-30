@@ -319,6 +319,11 @@ class SZh extends S {
   String get includeMode => '包含';
 
   @override
+  String includeModeTapAgainHint(String searchType) {
+    return '包含：$searchType（再次点击进入排除模式）';
+  }
+
+  @override
   String get noResults => '没有结果';
 
   @override
@@ -384,6 +389,15 @@ class SZh extends S {
   String get floatingLyricTouchDisabled => '已锁定 - 长按悬浮字幕解锁';
 
   @override
+  String get floatingLyricClickThrough => '悬浮字幕点击穿透';
+
+  @override
+  String get floatingLyricClickThroughEnabled => '已启用 - 悬浮字幕将忽略鼠标操作';
+
+  @override
+  String get floatingLyricClickThroughDisabled => '未启用 - 可拖动悬浮字幕';
+
+  @override
   String get floatingFPS => '显示帧率';
 
   @override
@@ -443,7 +457,7 @@ class SZh extends S {
   String get liquidGlassNavigation => '液态玻璃导航';
 
   @override
-  String get liquidGlassNavigationDesc => '玻璃导航栏与迷你播放器；支持的平台默认开启';
+  String get liquidGlassNavigationDesc => '玻璃导航栏与迷你播放器；Apple系26+平台默认开启';
 
   @override
   String get fallbackGlassTransparency => '液态玻璃透明度';
@@ -935,6 +949,39 @@ class SZh extends S {
 
   @override
   String get audioFormatSubtitle => '调整音频格式优先级';
+
+  @override
+  String get audioTapPlaylistMode => '播放列表添加模式';
+
+  @override
+  String get selectAudioTapPlaylistMode => '选择点击音频时如何更新播放列表：';
+
+  @override
+  String get audioTapPlaylistModeReplace => '替换模式';
+
+  @override
+  String get audioTapPlaylistModeReplaceDescription =>
+      '用点击音频所在目录下的所有可播放音频替换当前播放列表。';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectory => '追加模式';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectoryDescription =>
+      '将点击音频所在目录下的所有可播放音频追加到播放列表尾部；不会重复添加已有音轨。';
+
+  @override
+  String get audioTapPlaylistModeAppendSingle => '单音频追加模式';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleDescription =>
+      '只将点击的这个音频追加到播放列表尾部；不会重复添加已有音轨。';
+
+  @override
+  String get audioTapPlaylistModeAppendChip => '追加模式';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleChip => '单音频追加模式';
 
   @override
   String get preloadNextTitle => '预加载下一首';
@@ -2094,22 +2141,7 @@ class SZh extends S {
   String get floatingSubtitle => '悬浮字幕';
 
   @override
-  String get appendMode => '追加模式';
-
-  @override
-  String get appendModeStatusOn => '追加模式：开启';
-
-  @override
-  String get appendModeStatusOff => '追加模式：关闭';
-
-  @override
   String get playlistEmpty => '播放列表为空';
-
-  @override
-  String get appendModeEnabled => '追加模式已开启';
-
-  @override
-  String get appendModeHint => '之后点击音频会追加到当前播放列表尾部，而不是替换整个列表。\n不会重复添加同一音轨。';
 
   @override
   String get gotIt => '知道了';
@@ -3578,6 +3610,24 @@ class SZh extends S {
   String get invalidProxyAddress => '请输入有效的 HTTP 代理地址和端口';
 
   @override
+  String get proxyModeDirect => '直连';
+
+  @override
+  String get proxyModeSystem => '系统代理';
+
+  @override
+  String get proxyModeManual => '手动代理';
+
+  @override
+  String get proxyModeDirectDescription => '不使用代理直接连接';
+
+  @override
+  String get proxyModeSystemDescription => '使用操作系统的代理设置';
+
+  @override
+  String get proxyModeManualDescription => '使用下方配置的 HTTP 代理';
+
+  @override
   String get playlistDisplayFormat => '播放列表布局';
 
   @override
@@ -3902,6 +3952,11 @@ class SZhHant extends SZh {
   String get includeMode => '包含';
 
   @override
+  String includeModeTapAgainHint(String searchType) {
+    return '包含：$searchType（再次點擊進入排除模式）';
+  }
+
+  @override
   String get noResults => '沒有結果';
 
   @override
@@ -3967,6 +4022,15 @@ class SZhHant extends SZh {
   String get floatingLyricTouchDisabled => '已鎖定 - 長按懸浮字幕解鎖';
 
   @override
+  String get floatingLyricClickThrough => '懸浮字幕點擊穿透';
+
+  @override
+  String get floatingLyricClickThroughEnabled => '已啟用 - 懸浮字幕將忽略滑鼠操作';
+
+  @override
+  String get floatingLyricClickThroughDisabled => '未啟用 - 可拖動懸浮字幕';
+
+  @override
   String get floatingFPS => '顯示幀率';
 
   @override
@@ -4026,7 +4090,7 @@ class SZhHant extends SZh {
   String get liquidGlassNavigation => '液態玻璃導覽';
 
   @override
-  String get liquidGlassNavigationDesc => '玻璃導覽列與迷你播放器；支援的平台預設開啟';
+  String get liquidGlassNavigationDesc => '玻璃導覽列與迷你播放器；Apple 系 26+ 平台預設開啟';
 
   @override
   String get fallbackGlassTransparency => '液態玻璃透明度';
@@ -4518,6 +4582,39 @@ class SZhHant extends SZh {
 
   @override
   String get audioFormatSubtitle => '調整音訊格式優先順序';
+
+  @override
+  String get audioTapPlaylistMode => '播放清單新增模式';
+
+  @override
+  String get selectAudioTapPlaylistMode => '選擇點擊音訊時如何更新播放清單：';
+
+  @override
+  String get audioTapPlaylistModeReplace => '取代模式';
+
+  @override
+  String get audioTapPlaylistModeReplaceDescription =>
+      '以所點音訊所在目錄中的所有可播放音訊取代目前播放清單。';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectory => '追加模式';
+
+  @override
+  String get audioTapPlaylistModeAppendDirectoryDescription =>
+      '將所點音訊所在目錄中的所有可播放音訊追加到播放清單尾端；不會重複新增已有音軌。';
+
+  @override
+  String get audioTapPlaylistModeAppendSingle => '單音訊追加模式';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleDescription =>
+      '只將所點擊的音訊追加到播放清單尾端；不會重複新增已有音軌。';
+
+  @override
+  String get audioTapPlaylistModeAppendChip => '追加模式';
+
+  @override
+  String get audioTapPlaylistModeAppendSingleChip => '單音訊追加模式';
 
   @override
   String get preloadNextTitle => '預載下一首';
@@ -5677,22 +5774,7 @@ class SZhHant extends SZh {
   String get floatingSubtitle => '懸浮字幕';
 
   @override
-  String get appendMode => '追加模式';
-
-  @override
-  String get appendModeStatusOn => '追加模式：開啟';
-
-  @override
-  String get appendModeStatusOff => '追加模式：關閉';
-
-  @override
   String get playlistEmpty => '播放列表為空';
-
-  @override
-  String get appendModeEnabled => '追加模式已開啟';
-
-  @override
-  String get appendModeHint => '之後點擊音訊會追加到目前播放列表尾部，而不是替換整個列表。\n不會重複新增同一音軌。';
 
   @override
   String get gotIt => '知道了';
@@ -7159,6 +7241,24 @@ class SZhHant extends SZh {
 
   @override
   String get invalidProxyAddress => '請輸入有效的 HTTP 代理位址和連接埠';
+
+  @override
+  String get proxyModeDirect => '直連';
+
+  @override
+  String get proxyModeSystem => '系統代理';
+
+  @override
+  String get proxyModeManual => '手動代理';
+
+  @override
+  String get proxyModeDirectDescription => '不使用代理直接連接';
+
+  @override
+  String get proxyModeSystemDescription => '使用作業系統的代理設定';
+
+  @override
+  String get proxyModeManualDescription => '使用下方設定的 HTTP 代理';
 
   @override
   String get playlistDisplayFormat => '播放清單版面';
