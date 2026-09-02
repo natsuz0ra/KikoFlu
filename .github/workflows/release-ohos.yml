@@ -1,4 +1,4 @@
-name: Release HarmonyOS HAP (Official SDK)
+name: Release HarmonyOS HAP (API 26 Release)
 run-name: ${{ inputs.tag }}
 
 on:
@@ -19,7 +19,11 @@ concurrency:
 env:
   FLUTTER_REPOSITORY: https://gitcode.com/CPF-Flutter/flutter_flutter.git
   FLUTTER_REVISION: dcd184d2b8650f35120382a0db61231c6965912c
-  PUB_HOSTED_URL: https://pub.flutter-io.cn
+  HARMONYOS_CLI_VERSION: 26.0.0.821
+  HARMONYOS_API_VERSION: '26'
+  HARMONYOS_PLATFORM_VERSION: 26.0.0
+  HARMONYOS_SDK_STAGE: Release
+  PUB_HOSTED_URL: https://pub.dev
 
 jobs:
   release:
@@ -56,10 +60,35 @@ jobs:
           sudo apt-get install -y curl git libglu1-mesa unzip xz-utils zip
 
       - name: Setup HarmonyOS toolchain
-        uses: ErBWs/setup-ohos@v1
+        uses: ErBWs/setup-ohos@v2
         with:
-          version: latest
+          version: ${{ env.HARMONYOS_CLI_VERSION }}
           cache: true
+
+      - name: Validate API 26 Release toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SDK_METADATA_PATH="$HOS_SDK_HOME/default/sdk-pkg.json"
+          if [ ! -f "$SDK_METADATA_PATH" ]; then
+            echo "::error::HarmonyOS SDK metadata was not found at $SDK_METADATA_PATH."
+            exit 1
+          fi
+
+          SDK_API_VERSION="$(jq -r '.data.apiVersion' "$SDK_METADATA_PATH")"
+          SDK_PLATFORM_VERSION="$(jq -r '.data.platformVersion' "$SDK_METADATA_PATH")"
+          SDK_STAGE="$(jq -r '.data.stage' "$SDK_METADATA_PATH")"
+          SDK_VERSION="$(jq -r '.data.version' "$SDK_METADATA_PATH")"
+
+          if [ "$SDK_API_VERSION" != "$HARMONYOS_API_VERSION" ] ||
+             [ "$SDK_PLATFORM_VERSION" != "$HARMONYOS_PLATFORM_VERSION" ] ||
+             [ "$SDK_STAGE" != "$HARMONYOS_SDK_STAGE" ]; then
+            echo "::error::Expected HarmonyOS $HARMONYOS_PLATFORM_VERSION API $HARMONYOS_API_VERSION $HARMONYOS_SDK_STAGE, found SDK $SDK_VERSION ($SDK_STAGE)."
+            exit 1
+          fi
+
+          echo "Using HarmonyOS SDK $SDK_VERSION ($SDK_STAGE)."
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
